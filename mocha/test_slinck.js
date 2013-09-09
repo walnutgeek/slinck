@@ -178,6 +178,15 @@ describe('slinck', function() {
       var g = $_.Graph.parse("x=(q,b=(c=(q))),a=(b)");
       assert.equal(g.toString(),"x=(q,b=(c=(q))),a=(b)");
     });
+    it('test search', function() {
+      var g = $_.Graph.parse("x=(q,b=(c=(q))),a=(b)");
+      assert.equal(g.get("q").search("a","down"),true);
+      assert.equal(g.get("q").search("a","up"),false);
+      assert.equal(g.get("b").search("x","down"),true);
+      assert.equal(g.get("b").search("x","up"),false);
+      assert.equal(g.get("a").search("b","down"),false);
+      assert.equal(g.get("a").search("b","up"),true);
+    });
     it('parse exception: extra parenthesis at the end', function() {
       try{
         $_.Graph.parse("x=(q,b=(c=(q))),a=(b))");

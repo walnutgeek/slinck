@@ -463,6 +463,25 @@
         });
         delete this.parent.nodes[keyToDelete];
       },
+      ends : function(direction) {
+        var ends = {};
+        for ( var k in this.nodes) {
+          if (this.nodes[k].isEnd(direction)) {
+            ends[k] = this.nodes[k];
+          }
+        }
+        return ends;
+      },
+      search : function(key, direction) {
+        var found = false;
+        Graph.visit([this],direction,function(node){
+          if(node.k == key){
+            found = true;
+          }
+          return !found;
+        });
+        return found;
+      },
     });
 
     function Graph() {
