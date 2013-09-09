@@ -10,6 +10,14 @@
       return Object.prototype.toString.call(o) === '[object Array]';
     }
 
+    function applyOnAll(obj, action) {
+      for ( var k in obj) {
+        if (obj.hasOwnProperty(k)) {
+          action(obj[k], k, obj);
+        }
+      }
+    }
+
     function append(object, params) {
       for ( var propertyName in params) {
         if (params.hasOwnProperty(propertyName)) {
@@ -95,16 +103,24 @@
       return e;
     }
 
-    return {
-      "isArray" : isArray,
-      "append" : append,
-      "size" : size,
-      "join" : join,
-      "error" : error,
-    };
-  })();
-
-  $_.tokenator = (function() {
+    function assert(provided, expected, message) {
+      function checkAnyAgainstExpected() {
+        for ( var i = 0; i < expected.length; i++) {
+          if (provided === expected[i]) {
+            return false;
+          }
+        }
+        return true;
+      }
+      if (!isArray(expected) ? provided !== expected
+          : checkAnyAgainstExpected()) {
+        throw error({
+          message : message || ("Unexpected entry: " + provided),
+          expected : expected,
+          provided : provided,
+        });
+      }
+    }
 
     function Tokenator(s, delimiters) {
       var i = 0;
@@ -145,28 +161,15 @@
       };
     }
 
-    function assert(provided, expected, message) {
-      function checkAnyAgainstExpected() {
-        for ( var i = 0; i < expected.length; i++) {
-          if (provided === expected[i]) {
-            return false;
-          }
-        }
-        return true;
-      }
-      if (!$_.utils.isArray(expected) ? provided !== expected
-          : checkAnyAgainstExpected()) {
-        throw $_.utils.error({
-          message : message || ("Unexpected entry: " + provided),
-          expected : expected,
-          provided : provided,
-        });
-      }
-    }
-
     return {
-      "Tokenator" : Tokenator,
+      "isArray" : isArray,
+      "append" : append,
+      "size" : size,
+      "join" : join,
+      "error" : error,
+      "applyOnAll" : applyOnAll,
       "assert" : assert,
+      "Tokenator" : Tokenator,
     };
   })();
 
@@ -303,12 +306,12 @@
         return this;
       var iuc = this instanceof Path ? this : new Path(WUN);
       iuc.elements = $_.utils.isArray(path) ? path : (function(s) {
-        var t = $_.tokenator.Tokenator(s, "/");
+        var t = $_.utils.Tokenator(s, "/");
         var d = t.nextDelimiter();
-        $_.tokenator.assert("", d);
+        $_.utils.assert("", d);
         var elems = [];
         var endDelimiter = extractPathElements(t, elems);
-        $_.tokenator.assert(endDelimiter, null);
+        $_.utils.assert(endDelimiter, null);
         return elems;
       })(path);
       return iuc;
@@ -339,9 +342,9 @@
       if (s === WUN)
         return this;
       var iuc = this instanceof Slinck ? this : new Slinck(WUN);
-      var t = $_.tokenator.Tokenator(s, ":/?&=");
+      var t = $_.utils.Tokenator(s, ":/?&=");
       var d = t.nextDelimiter();
-      $_.tokenator.assert(d, [ "", "/" ]);
+      $_.utils.assert(d, [ "", "/" ]);
       var p = t.getPosition();
       var v = t.nextValue();
       d = t.nextDelimiter();
@@ -349,13 +352,13 @@
       iuc.bounds = {};
       if (v === "slinck" && d === "://") {
         iuc.host = t.nextValue();
-        $_.tokenator.assert(t.nextDelimiter(), "/");
+        $_.utils.assert(t.nextDelimiter(), "/");
       } else {
         t.setPosition(p);
       }
       var sectionElements = [];
       d = extractPathElements(t, sectionElements);
-      $_.tokenator.assert(d, [ "", "//", null ]);
+      $_.utils.assert(d, [ "", "//", null ]);
       iuc.section = new Path(sectionElements);
       iuc.bounds = {};
       if (d === "//") {
@@ -364,18 +367,18 @@
         if (d === "?") {
           do {
             v = t.nextValue();
-            $_.tokenator.assert(typeof Slinck.CONDITION[v], 'function',
+            $_.utils.assert(typeof Slinck.CONDITION[v], 'function',
                 "Unknown condition:" + v);
-            $_.tokenator.assert(t.nextDelimiter(), "=");
+            $_.utils.assert(t.nextDelimiter(), "=");
             var conditionPath = [];
             d = extractPathElements(t, conditionPath);
             iuc.bounds[v] = new Bound(v, conditionPath);
-            $_.tokenator.assert(d, [ "", "&", null ]);
+            $_.utils.assert(d, [ "", "&", null ]);
           } while (d === "&");
         }
         var bounds_size = $_.utils.size(iuc.bounds);
         if (pathElements.length > 1) {
-          $_.tokenator.assert(bounds_size, 0,
+          $_.utils.assert(bounds_size, 0,
               "path has implied bounds that conflicts with explicit bounds");
           iuc.pathBound = new Bound("eq", pathElements.slice(1));
         }
@@ -426,9 +429,193 @@
       return this.bounds[k];
     };
 
+    var DIRECTION = {
+      up : function(node) {
+        return node.upstreams;
+      },
+      down : function(node) {
+        return node.downstreams;
+      },
+    };
+
+    function Node(k, parent) {
+      $_.utils.assert(this instanceof Node, true);
+      this.k = k;
+      this.upstreams = {};
+      this.downstreams = {};
+      this.graph = parent;
+    }
+
+    $_.utils.append(Node.prototype, {
+      edges : function(direction) {
+        return DIRECTION[direction](this);
+      },
+      isEnd : function(direction) {
+        return $_.utils.size(this.edges(direction)) === 0;
+      },
+      remove : function() {
+        var keyToDelete = this.k;
+        $_.utils.applyOnAll(this.upstreams, function(node) {
+          delete node.downstreams[keyToDelete];
+        });
+        $_.utils.applyOnAll(this.downstreams, function(node) {
+          delete node.upstreams[keyToDelete];
+        });
+        delete this.parent.nodes[keyToDelete];
+      },
+    });
+
+    function Graph() {
+      $_.utils.assert(this instanceof Graph, true,
+          "please use this function with new");
+      this.nodes = {};
+    }
+
+    $_.utils.append(Graph.prototype, {
+      get : function(k) {
+        return this.nodes[k];
+      },
+      ensure : function(k) {
+        var n = this.nodes[k];
+        if (!n) {
+          this.nodes[k] = n = new Node(k, this);
+        }
+        return n;
+      },
+      addEdge : function(downstream, upstream) {
+        var un = this.ensure(upstream);
+        var dn = this.ensure(downstream);
+        un.downstreams[downstream] = dn;
+        dn.upstreams[upstream] = un;
+        return this;
+      },
+      ends : function(direction) {
+        var ends = {};
+        for ( var k in this.nodes) {
+          if (this.nodes[k].isEnd(direction)) {
+            ends[k] = this.nodes[k];
+          }
+        }
+        return ends;
+      },
+      toString : function() {
+        var s = '';
+        var visited = {};
+        var ends = this.ends("down");
+        $_.Graph.visit(ends, "up", function(node, direction, context) {
+          s += node.k;
+          var notVisited = !visited[node.k];
+          if (notVisited) {
+            visited[node.k] = true;
+            if ($_.utils.size(context.edges) > 0) {
+              context.parentheses = true;
+              s += "=(";
+            }
+          }
+          return notVisited;
+        }, function(node, edges, context) {
+          if (context.parentheses) {
+            s += ")";
+          }
+          if (!context.lastOne) {
+            s += ',';
+          }
+        });
+        return s;
+      }
+    });
+
+    function visit(nodes, direction, before, after) {
+      var i = 0;
+      var size = $_.utils.size(nodes);
+      for ( var k in nodes) {
+        (function() {
+          var node = nodes[k];
+          var context = {
+            k : k,
+            i : i,
+            size : size,
+            edges : node.edges(direction),
+            parentheses : false,
+            firstOne : i === 0,
+            lastOne : i === (size - 1),
+          };
+          if (before(node, direction, context)) {
+            visit(context.edges, direction, before, after);
+            if (after) {
+              after(node, direction, context);
+            }
+          }
+          i++;
+        })();
+
+      }
+    }
+
+    Graph.visit = visit;
+    function parse(s) {
+      var t = new $_.utils.Tokenator(s, "=(),");
+      var g = new Graph();
+      var k, path = [];
+      try {
+        while (k = t.nextValue()) {
+          if (path.length > 0) {
+            g.addEdge(path[path.length - 1], k);
+          } else {
+            g.ensure(k);
+          }
+          var d = t.nextDelimiter();
+          if (d === "=(") {
+            path.push(k);
+          } else if (d === "" || d === ",") {
+            // do nothing
+          } else {
+            for ( var i = 0; i < d.length; i++) {
+              var c = d.charAt(i);
+              if (c === ')') {
+                if(path.length===0){
+                  throw $_.utils.error({
+                    message : "unbalanced parenthesis"
+                  });
+                }
+                path.pop();
+              }else if (c === ',' & d.length === (i + 1)) {
+                // do nothing
+              } else {
+                throw $_.utils.error({
+                  message : "Unexpected delimiter",
+                  c : c,
+                  i : i
+                });
+              }
+            }
+          }
+        }
+        if (path.length !== 0) {
+          throw $_.utils.error({
+            path : path,
+            message : "unbalanced parenthesis"
+          });
+        }
+        if (t.getPosition() !== s.length) {
+          throw $_.utils.error({
+            k : k,
+            message : "have to parse all charectes"
+          });
+        }
+        return g;
+      } catch (e) {
+        throw $_.utils.error({
+          t : t.toString()
+        }, e);
+      }
+    }
+    Graph.parse = parse;
+
     return {
       "Slinck" : Slinck,
       "Path" : Path,
+      "Graph" : Graph,
     };
   })());
 
