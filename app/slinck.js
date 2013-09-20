@@ -1,13 +1,28 @@
 (function() {
+  var WUN = 653826927654; // weird unique number
+
   var $_ = new Object();
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = $_;
   }
   this.$_ = $_;
 
+  // convert list to object, assumes that all element of list has property name
+
   $_.utils = (function() {
     function isArray(o) {
       return Object.prototype.toString.call(o) === '[object Array]';
+    }
+
+    function convertListToObject(list, nameProperty) {
+      if (!nameProperty) {
+        nameProperty = "name";
+      }
+      var obj = new Object();
+      for ( var i = 0; i < list.length; i++) {
+        obj[list[i][nameProperty]] = list[i];
+      }
+      return obj;
     }
 
     function applyOnAll(obj, action) {
@@ -63,6 +78,16 @@
       return s;
     }
 
+    function isString(a) {
+      return typeof a === "string" || a instanceof String;
+    }
+
+    function stringify(x) { 
+      return x === undefined ? "undefined" : x === null ? "null"
+          : isString(x) ? "'" + x + "'" : isArray(x) ? "["
+              + join(x, ",", stringify) + "]" : x.toString();
+    }
+
     function error(params, input) {
       var e;
       if (input instanceof Error) {
@@ -94,7 +119,7 @@
         msg += "  ";
         for ( var k in e.params) {
           if (e.params.hasOwnProperty(k)) {
-            msg += k + ":" + e.params[k] + ", ";
+            msg += k + ":" + stringify(e.params[k]) + ", ";
           }
         }
         msg = msg.substring(0, msg.length - 2);
@@ -160,17 +185,8 @@
         }
       };
     }
-
-    return {
-      "isArray" : isArray,
-      "append" : append,
-      "size" : size,
-      "join" : join,
-      "error" : error,
-      "applyOnAll" : applyOnAll,
-      "assert" : assert,
-      "Tokenator" : Tokenator,
-    };
+    return convertListToObject([ convertListToObject, isArray, append, size,
+        join, error, applyOnAll, assert, Tokenator, isString, stringify ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -259,32 +275,29 @@
       return text;
     }
 
-    return {
-      "encode" : encode,
-      "decode" : decode,
-    };
+    return $_.utils.convertListToObject([ encode, decode ]);
   })();
 
   /**
-   * Slinck amalgamation of words: slick link Can represens section: c
+   * Slinck amalgamation of words: slick link
+   * 
+   * Can represens section: slinck://host/branch/sec/ti/on
    * 
    * Can represent file: slinck://host/branch/sec/ti/on//fi/le/pa/th
    * 
    * Can represent fragment of ordered table
-   * slinck://host/branch/sec/ti/ondb//index/a/b/c
+   * slinck://host/branch/sec/ti/on/db//a/b/c
    * 
    * or you can write same query as 'eq' condition to:
-   * slinck://host/branch/sec/ti/ondb//index?eq=a/b/c
+   * slinck://host/branch/sec/ti/ondb//?eq=a/b/c
    * 
    * Can represent fragment as range between two keys:
-   * slinck://host/branch/sec/ti/ondb//index?gte=a1/b1/c1&lt=a2/b2/c3
+   * slinck://host/branch/sec/ti/ondb//?gte=a1/b1/c1&lt=a2/b2/c3
    * 
-   * percent_encoding.js to escape symbols
+   * uses $_.percent_encoding to escape symbols
    * http://en.wikipedia.org/wiki/Percent-encoding
    */
   $_.utils.append($_, (function() {
-
-    var WUN = 653826927654; // weird unique number
 
     function extractPathElements(t, elems) {
       for (;;) {
@@ -344,29 +357,38 @@
       var iuc = this instanceof Slinck ? this : new Slinck(WUN);
       var t = $_.utils.Tokenator(s, ":/?&=");
       var d = t.nextDelimiter();
-      $_.utils.assert(d, [ "", "/" ]);
-      var p = t.getPosition();
-      var v = t.nextValue();
-      d = t.nextDelimiter();
-      iuc.host = iuc.path = null;
-      iuc.bounds = {};
-      if (v === "slinck" && d === "://") {
-        iuc.host = t.nextValue();
-        $_.utils.assert(t.nextDelimiter(), "/");
-      } else {
-        t.setPosition(p);
-      }
-      var sectionElements = [];
-      d = extractPathElements(t, sectionElements);
-      $_.utils.assert(d, [ "", "//", null ]);
-      iuc.section = new Path(sectionElements);
-      iuc.bounds = {};
-      if (d === "//") {
-        var pathElements = [];
-        d = extractPathElements(t, pathElements);
-        if (d === "?") {
+      try {
+        $_.utils.assert(d, [ "", "/" ]);
+        var p = t.getPosition();
+        var v = t.nextValue();
+        d = t.nextDelimiter();
+        iuc.host = iuc.path = null;
+        iuc.bounds = {};
+        if (v === "slinck" && d === "://") {
+          iuc.host = t.nextValue();
+          $_.utils.assert(t.nextDelimiter(), "/");
+        } else {
+          t.setPosition(p);
+        }
+        var sectionElements = [];
+        d = extractPathElements(t, sectionElements);
+        $_.utils.assert(d, [ "", "//", "?", null ]);
+        iuc.section = new Path(sectionElements);
+        iuc.bounds = {};
+        if (d === "//") {
+          var pathElements = [];
+          d = extractPathElements(t, pathElements);
+          if (pathElements.length > 0) {
+            iuc.pathBound = new Bound("eq", pathElements);
+          }
+          iuc.path = new Path(pathElements);
+        } else if (d === "?") {
           do {
             v = t.nextValue();
+            if (v === null || v === "") {
+              d = t.nextDelimiter();
+              break;
+            }
             $_.utils.assert(typeof Slinck.CONDITION[v], 'function',
                 "Unknown condition:" + v);
             $_.utils.assert(t.nextDelimiter(), "=");
@@ -376,13 +398,11 @@
             $_.utils.assert(d, [ "", "&", null ]);
           } while (d === "&");
         }
-        var bounds_size = $_.utils.size(iuc.bounds);
-        if (pathElements.length > 1) {
-          $_.utils.assert(bounds_size, 0,
-              "path has implied bounds that conflicts with explicit bounds");
-          iuc.pathBound = new Bound("eq", pathElements.slice(1));
-        }
-        iuc.path = new Path(pathElements);
+        $_.utils.assert(d, [ "", null ]);
+      } catch (e) {
+        throw $_.utils.error({
+          tokenator : t.toString()
+        }, e);
       }
       return iuc;
     }
@@ -474,8 +494,8 @@
       },
       search : function(key, direction) {
         var found = false;
-        Graph.visit([this],direction,function(node){
-          if(node.k == key){
+        Graph.visit([ this ], direction, function(node) {
+          if (node.k == key) {
             found = true;
           }
           return !found;
@@ -484,6 +504,9 @@
       },
     });
 
+    /**
+     * Directed Acyclic Graph
+     */
     function Graph() {
       $_.utils.assert(this instanceof Graph, true,
           "please use this function with new");
@@ -504,6 +527,13 @@
       addEdge : function(downstream, upstream) {
         var un = this.ensure(upstream);
         var dn = this.ensure(downstream);
+        if (un.search(downstream, "up") || dn.search(upstream, "down")) {
+          throw $_.utils.error({
+            message : "circular reference",
+            downstream : downstream,
+            upstream : upstream,
+          });
+        }
         un.downstreams[downstream] = dn;
         dn.upstreams[upstream] = un;
         return this;
@@ -571,7 +601,6 @@
       }
     }
 
-    Graph.visit = visit;
     function parse(s) {
       var t = new $_.utils.Tokenator(s, "=(),");
       var g = new Graph();
@@ -592,13 +621,13 @@
             for ( var i = 0; i < d.length; i++) {
               var c = d.charAt(i);
               if (c === ')') {
-                if(path.length===0){
+                if (path.length === 0) {
                   throw $_.utils.error({
                     message : "unbalanced parenthesis"
                   });
                 }
                 path.pop();
-              }else if (c === ',' & d.length === (i + 1)) {
+              } else if (c === ',' & d.length === (i + 1)) {
                 // do nothing
               } else {
                 throw $_.utils.error({
@@ -629,13 +658,96 @@
         }, e);
       }
     }
+    Graph.visit = visit;
     Graph.parse = parse;
 
-    return {
-      "Slinck" : Slinck,
-      "Path" : Path,
-      "Graph" : Graph,
+    // --- Graph
+
+    /** Table */
+
+    var TYPES = {};
+    function Type(name, sortFunction) {
+      this.name = name;
+      this.compare = Type.nullsCompare(sortFunction);
+      TYPES[name] = this;
+    }
+
+    Type.get = function(name) {
+      return TYPES[name];
     };
+
+    Type.nullsCompare = function(f) {
+      function isUndef(x) {
+        return x === undefined;
+      }
+      function isNull(x) {
+        return x === null;
+      }
+      function exculdeIs(is, doIt) {
+        return function(a, b) {
+          return is(a) ? (is(b) ? 0 : 1) : (is(b) ? -1 : doIt(a, b));
+        };
+      }
+      return exculdeIs(isUndef, exculdeIs(isNull, f));
+    };
+
+    Type.inverse = function(f) {
+      return function(a, b) {
+        return -f(a, b);
+      };
+    };
+
+    new Type("string", function(a, b) {
+      var aStr = $_.utils.isString(a) ? a : String(a);
+      var bStr = $_.utils.isString(b) ? b : String(b);
+      return aStr === bStr ? 0 : aStr < bStr ? -1 : 1;
+    });
+
+    new Type("number", function(a, b) {
+      return a - b;
+    });
+
+    new Type("boolean", function(a, b) {
+      return a ? (b ? 0 : 1) : (b ? -1 : 0);
+    });
+
+    function Column(name, title, type, key) {
+      $_.utils.assert(this instanceof Column, true,
+          "please use new, when calling this function");
+      this.name = name;
+      this.title = title;
+      this.type = type;
+      this.key = key;
+    }
+
+    function Table(sl, columns) {
+      $_.utils.assert(this instanceof Table, true,
+          "please use new, when calling this function");
+      this.sl = sl;
+      this.columns = columns;
+      this.data = [];
+      this.version = null;
+    }
+
+    Table.prototype.newRow = function(values) {
+      var row = {};
+      for ( var colIdx = 0; colIdx < columns.length; colIdx++) {
+        var n = columns[colIdx].name;
+        row[n] = values ? values[n] : null;
+      }
+      return row;
+    };
+
+    Table.prototype.addRow = function(row) {
+      data.push(row);
+    };
+
+    Column.Type = Type;
+    Table.Column = Column;
+
+    /** /Table */
+
+    return $_.utils.convertListToObject([ Slinck, Path, Graph, Table ]);
   })());
 
 })();
