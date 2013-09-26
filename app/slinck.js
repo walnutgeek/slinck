@@ -82,7 +82,7 @@
       return typeof a === "string" || a instanceof String;
     }
 
-    function stringify(x) { 
+    function stringify(x) {
       return x === undefined ? "undefined" : x === null ? "null"
           : isString(x) ? "'" + x + "'" : isArray(x) ? "["
               + join(x, ",", stringify) + "]" : x.toString();
@@ -147,7 +147,31 @@
       }
     }
 
-    function Tokenator(s, delimiters) {
+    function padWith(what, pad) {
+      var r = String(what);
+      if (r.length !== pad.length) {
+        r = (pad + r).substr(r.length, pad.length);
+      }
+      return r;
+    }
+
+    function dateToIsoString(date) {
+      return date.getUTCFullYear() + '-'
+          + padWith(date.getUTCMonth() + 1, '00') + '-'
+          + padWith(date.getUTCDate(), '00') + 'T'
+          + padWith(date.getUTCHours(), '00') + ':'
+          + padWith(date.getUTCMinutes(), '00') + ':'
+          + padWith(date.getUTCSeconds(), '00') + '.'
+          + padWith(date.getUTCMilliseconds(), '0000') + 'Z';
+    }
+
+    if (!Date.prototype.toISOString) {
+      Date.prototype.toISOString = function() {
+        return dateToIsoString(this);
+      };
+    }
+
+    function Tokenizer(s, delimiters) {
       var i = 0;
 
       function isValueChar() {
@@ -186,7 +210,8 @@
       };
     }
     return convertListToObject([ convertListToObject, isArray, append, size,
-        join, error, applyOnAll, assert, Tokenator, isString, stringify ]);
+        join, error, applyOnAll, assert, Tokenizer, isString, stringify,
+        padWith, dateToIsoString ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -319,7 +344,7 @@
         return this;
       var iuc = this instanceof Path ? this : new Path(WUN);
       iuc.elements = $_.utils.isArray(path) ? path : (function(s) {
-        var t = $_.utils.Tokenator(s, "/");
+        var t = $_.utils.Tokenizer(s, "/");
         var d = t.nextDelimiter();
         $_.utils.assert("", d);
         var elems = [];
@@ -355,7 +380,7 @@
       if (s === WUN)
         return this;
       var iuc = this instanceof Slinck ? this : new Slinck(WUN);
-      var t = $_.utils.Tokenator(s, ":/?&=");
+      var t = $_.utils.Tokenizer(s, ":/?&=");
       var d = t.nextDelimiter();
       try {
         $_.utils.assert(d, [ "", "/" ]);
@@ -450,23 +475,50 @@
     };
 
     var DIRECTION = {
-      up : function(node) {
-        return node.upstreams;
+      up : function(vertex) {
+        return vertex.upstreams;
       },
-      down : function(node) {
-        return node.downstreams;
+      down : function(vertex) {
+        return vertex.downstreams;
       },
     };
 
-    function Node(k, parent) {
-      $_.utils.assert(this instanceof Node, true);
+    function visit(vertices, direction, before, after) {
+      var i = 0;
+      var size = $_.utils.size(vertices);
+      for ( var k in vertices) {
+        (function() {
+          var vertex = vertices[k];
+          var context = {
+            k : k,
+            i : i,
+            size : size,
+            edges : vertex.edges(direction),
+            parentheses : false,
+            firstOne : i === 0,
+            lastOne : i === (size - 1),
+          };
+          if (before(vertex, direction, context)) {
+            visit(context.edges, direction, before, after);
+            if (after) {
+              after(vertex, direction, context);
+            }
+          }
+          i++;
+        })();
+
+      }
+    }
+
+    function Vertex(k, parent) {
+      $_.utils.assert(this instanceof Vertex, true);
       this.k = k;
       this.upstreams = {};
       this.downstreams = {};
       this.graph = parent;
     }
 
-    $_.utils.append(Node.prototype, {
+    $_.utils.append(Vertex.prototype, {
       edges : function(direction) {
         return DIRECTION[direction](this);
       },
@@ -475,27 +527,32 @@
       },
       remove : function() {
         var keyToDelete = this.k;
-        $_.utils.applyOnAll(this.upstreams, function(node) {
-          delete node.downstreams[keyToDelete];
+        $_.utils.applyOnAll(this.upstreams, function(vertex) {
+          delete vertex.downstreams[keyToDelete];
         });
-        $_.utils.applyOnAll(this.downstreams, function(node) {
-          delete node.upstreams[keyToDelete];
+        $_.utils.applyOnAll(this.downstreams, function(vertex) {
+          delete vertex.upstreams[keyToDelete];
         });
-        delete this.parent.nodes[keyToDelete];
+        delete this.parent.vertices[keyToDelete];
       },
       ends : function(direction) {
         var ends = {};
-        for ( var k in this.nodes) {
-          if (this.nodes[k].isEnd(direction)) {
-            ends[k] = this.nodes[k];
+        for ( var k in this.vertices) {
+          if (this.vertices[k].isEnd(direction)) {
+            ends[k] = this.vertices[k];
           }
         }
         return ends;
       },
+      setOfOne : function() {
+        var r = {};
+        r[this.k] = this;
+        return r;
+      },
       search : function(key, direction) {
         var found = false;
-        Graph.visit([ this ], direction, function(node) {
-          if (node.k == key) {
+        visit(this.setOfOne(), direction, function(vertex) {
+          if (vertex.k == key) {
             found = true;
           }
           return !found;
@@ -504,29 +561,95 @@
       },
     });
 
+    /** Type */
+
+    function Type(name, sortFunction) {
+      this.name = name;
+      this.compare = Type.nullsCompare(sortFunction);
+      Type[name] = this;
+    }
+
+    Type.nullsCompare = function(f) {
+      function isUndef(x) {
+        return x === undefined;
+      }
+      function isNull(x) {
+        return x === null;
+      }
+      function exculdeIs(is, doIt) {
+        return function(a, b) {
+          return is(a) ? (is(b) ? 0 : 1) : (is(b) ? -1 : doIt(a, b));
+        };
+      }
+      return exculdeIs(isUndef, exculdeIs(isNull, f));
+    };
+
+    Type.inverse = function(f) {
+      return function(a, b) {
+        return f(b, a);
+      };
+    };
+
+    new Type("string", function(a, b) {
+      var aStr = $_.utils.isString(a) ? a : String(a);
+      var bStr = $_.utils.isString(b) ? b : String(b);
+      return aStr === bStr ? 0 : aStr < bStr ? -1 : 1;
+    });
+
+    new Type("number", function(a, b) {
+      return a - b;
+    });
+
+    new Type("boolean", function(a, b) {
+      return a ? (b ? 0 : 1) : (b ? -1 : 0);
+    });
+
+    new Type("date", function(a, b) {
+      return a ? (b ? 0 : 1) : (b ? -1 : 0);
+    });
+
+
+    function ColumnRole(name) {
+      this.name = name;
+      ColumnRole[name] = this;
+    }
+
+    new ColumnRole("key");
+    new ColumnRole("data");
+    new ColumnRole("attachment");
+
+
+    /** /Type */
+
     /**
-     * Directed Acyclic Graph
+     * Graph - directed acyclic graph,
+     * 
+     * upstream and downstream indicates direction from upstream to downstream
+     * (think flow)
+     * 
+     * 
      */
     function Graph() {
       $_.utils.assert(this instanceof Graph, true,
           "please use this function with new");
-      this.nodes = {};
+      this.vertices = {};
     }
 
     $_.utils.append(Graph.prototype, {
       get : function(k) {
-        return this.nodes[k];
+        return this.vertices[k];
       },
       ensure : function(k) {
-        var n = this.nodes[k];
+        var n = this.vertices[k];
         if (!n) {
-          this.nodes[k] = n = new Node(k, this);
+          this.vertices[k] = n = new Vertex(k, this);
         }
         return n;
       },
       addEdge : function(downstream, upstream) {
-        var un = this.ensure(upstream);
-        var dn = this.ensure(downstream);
+        var un = upstream instanceof Vertex ? upstream : this.ensure(upstream);
+        var dn = downstream instanceof Vertex ? downstream : this
+            .ensure(downstream);
         if (un.search(downstream, "up") || dn.search(upstream, "down")) {
           throw $_.utils.error({
             message : "circular reference",
@@ -539,30 +662,83 @@
         return this;
       },
       ends : function(direction) {
-        var ends = {};
-        for ( var k in this.nodes) {
-          if (this.nodes[k].isEnd(direction)) {
-            ends[k] = this.nodes[k];
+        var r = {};
+        for ( var k in this.vertices) {
+          if (this.vertices[k].isEnd(direction)) {
+            r[k] = this.vertices[k];
           }
         }
-        return ends;
+        return r;
+      },
+      visitBreadthFirst : function(vertexKeys, direction, onVisit, compare) {
+        if (!compare)
+          compare = Type.string.compare;
+        var queue = $_.utils.isArray(vertexKeys) ? vertexKeys.slice(0) : Object
+            .keys(vertexKeys);
+        queue.sort(compare);
+        while (queue.length > 0) {
+          var k = queue.shift();
+          var vertex = this.vertices[k];
+          var context = {
+            k : k,
+            edges : vertex.edges(direction),
+          };
+          if (onVisit(vertex, direction, context)) {
+            var childrenKeys = Object.keys(context.edges);
+            if (childrenKeys.length > 0) {
+              queue = queue.concat(childrenKeys.sort(compare));
+            }
+          }
+        }
+      },
+      sort : function() {
+        var visited = {};
+        var sorted = [];
+        this.visitBreadthFirst(this.ends("up"), "down", function(vertex) {
+          var alreadySeen = visited[vertex.k];
+          var store = !alreadySeen;
+          if (store) {
+            for ( var dkey in vertex.upstreams) {
+              if (!visited[dkey]) {
+                store = false;
+              }
+            }
+            if (store) {
+              sorted.push(vertex.k);
+              visited[vertex.k] = 1;
+            }
+          }
+          return !alreadySeen;
+        });
+        return sorted;
+      },
+      visitDepthFirst : function(vertixKeys, direction, before, after) {
+        var verticesToSearch = {};
+        if ($_.utils.isArray(vertixKeys)) {
+          for ( var i = 0; i < vertixKeys.length; i++) {
+            verticesToSearch[vertixKeys[i]] = this.vertices[vertixKeys[i]];
+          }
+        } else {
+          verticesToSearch = vertixKeys;
+        }
+        visit(verticesToSearch, direction, before, after);
       },
       toString : function() {
         var s = '';
         var visited = {};
         var ends = this.ends("down");
-        $_.Graph.visit(ends, "up", function(node, direction, context) {
-          s += node.k;
-          var notVisited = !visited[node.k];
+        visit(ends, "up", function(vertex, direction, context) {
+          s += vertex.k;
+          var notVisited = !visited[vertex.k];
           if (notVisited) {
-            visited[node.k] = true;
+            visited[vertex.k] = true;
             if ($_.utils.size(context.edges) > 0) {
               context.parentheses = true;
               s += "=(";
             }
           }
           return notVisited;
-        }, function(node, edges, context) {
+        }, function(vertex, edges, context) {
           if (context.parentheses) {
             s += ")";
           }
@@ -574,35 +750,8 @@
       }
     });
 
-    function visit(nodes, direction, before, after) {
-      var i = 0;
-      var size = $_.utils.size(nodes);
-      for ( var k in nodes) {
-        (function() {
-          var node = nodes[k];
-          var context = {
-            k : k,
-            i : i,
-            size : size,
-            edges : node.edges(direction),
-            parentheses : false,
-            firstOne : i === 0,
-            lastOne : i === (size - 1),
-          };
-          if (before(node, direction, context)) {
-            visit(context.edges, direction, before, after);
-            if (after) {
-              after(node, direction, context);
-            }
-          }
-          i++;
-        })();
-
-      }
-    }
-
-    function parse(s) {
-      var t = new $_.utils.Tokenator(s, "=(),");
+    Graph.parse = function(s) {
+      var t = new $_.utils.Tokenizer(s, "=(),");
       var g = new Graph();
       var k, path = [];
       try {
@@ -627,7 +776,7 @@
                   });
                 }
                 path.pop();
-              } else if (c === ',' & d.length === (i + 1)) {
+              } else if (c === ',' && d.length === (i + 1)) {
                 // do nothing
               } else {
                 throw $_.utils.error({
@@ -657,59 +806,11 @@
           t : t.toString()
         }, e);
       }
-    }
-    Graph.visit = visit;
-    Graph.parse = parse;
+    };
 
-    // --- Graph
+    /** /Graph */
 
     /** Table */
-
-    var TYPES = {};
-    function Type(name, sortFunction) {
-      this.name = name;
-      this.compare = Type.nullsCompare(sortFunction);
-      TYPES[name] = this;
-    }
-
-    Type.get = function(name) {
-      return TYPES[name];
-    };
-
-    Type.nullsCompare = function(f) {
-      function isUndef(x) {
-        return x === undefined;
-      }
-      function isNull(x) {
-        return x === null;
-      }
-      function exculdeIs(is, doIt) {
-        return function(a, b) {
-          return is(a) ? (is(b) ? 0 : 1) : (is(b) ? -1 : doIt(a, b));
-        };
-      }
-      return exculdeIs(isUndef, exculdeIs(isNull, f));
-    };
-
-    Type.inverse = function(f) {
-      return function(a, b) {
-        return -f(a, b);
-      };
-    };
-
-    new Type("string", function(a, b) {
-      var aStr = $_.utils.isString(a) ? a : String(a);
-      var bStr = $_.utils.isString(b) ? b : String(b);
-      return aStr === bStr ? 0 : aStr < bStr ? -1 : 1;
-    });
-
-    new Type("number", function(a, b) {
-      return a - b;
-    });
-
-    new Type("boolean", function(a, b) {
-      return a ? (b ? 0 : 1) : (b ? -1 : 0);
-    });
 
     function Column(name, title, type, key) {
       $_.utils.assert(this instanceof Column, true,
@@ -720,34 +821,40 @@
       this.key = key;
     }
 
-    function Table(sl, columns) {
+    function Table(sl, columns, data, version) {
       $_.utils.assert(this instanceof Table, true,
           "please use new, when calling this function");
       this.sl = sl;
-      this.columns = columns;
-      this.data = [];
-      this.version = null;
+      this.columns = columns ? columns : [];
+      this.data = data ? data : [];
+      this.version = version ? version : null;
     }
 
-    Table.prototype.newRow = function(values) {
-      var row = {};
-      for ( var colIdx = 0; colIdx < columns.length; colIdx++) {
-        var n = columns[colIdx].name;
-        row[n] = values ? values[n] : null;
+    $_.utils.append(Table.prototype, {
+      newRow : function(values) {
+        var row = {};
+        for ( var colIdx = 0; colIdx < columns.length; colIdx++) {
+          var n = this.columns[colIdx].name;
+          row[n] = values ? values[n] : null;
+        }
+        return row;
+      },
+      addRow : function(row) {
+        this.data.push(row);
+      },
+      addColumn : function(name, title, type, key) {
+        this.columns.push(new Column(name, title, type, key));
       }
-      return row;
-    };
-
-    Table.prototype.addRow = function(row) {
-      data.push(row);
-    };
+    });
 
     Column.Type = Type;
+    Column.Role = ColumnRole;
     Table.Column = Column;
 
     /** /Table */
 
-    return $_.utils.convertListToObject([ Slinck, Path, Graph, Table ]);
+    return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
+        Type, ColumnRole ]);
   })());
 
 })();

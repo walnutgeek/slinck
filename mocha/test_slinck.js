@@ -199,6 +199,10 @@ describe(
               assert.equal(g.get("a").search("b", "down"), false);
               assert.equal(g.get("a").search("b", "up"), true);
             });
+            it('test sort', function() {
+              var g = $_.Graph.parse("x=(q,b=(c=(q))),a=(b)");
+              assert.equal($_.utils.stringify(g.sort()),"['q','c','b','a','x']");
+            });
             it('parse exception: extra parenthesis at the end', function() {
               try {
                 $_.Graph.parse("x=(q,b=(c=(q))),a=(b))");
@@ -261,8 +265,11 @@ describe(
                   }
                 });
             it('sort Table', function() {
-              // TODO
-              new $_.Table();
+              var table = new $_.Table();
+              table.addColumn("name",null,$_.Type.string,$_.ColumnRole.key);
+              table.addColumn("description",null,$_.Type.string,$_.ColumnRole.data);
+              table.addColumn("file",null,$_.Type.file,$_.ColumnRole.attachment);
+              table.addColumn("modified",null,$_.Type.date,$_.ColumnRole.data);
             });
           });
       describe(
@@ -286,7 +293,7 @@ describe(
             function() {
               var a = [ true, null, false, undefined, null, true, undefined,
                   false ];
-              a.sort($_.Table.Column.Type.get("boolean").compare);
+              a.sort($_.Type.boolean.compare);
               assert.equal("[false,false,true,true,null,null,null,null]", JSON
                   .stringify(a));
               assert.equal(a[6], undefined);
@@ -295,7 +302,7 @@ describe(
         it('compare number', function() {
           var a = [ "43", null, "1", undefined, "", null, 5, -2, "-1",
               undefined, "10" ];
-          a.sort($_.Table.Column.Type.get("number").compare);
+          a.sort($_.Type.number.compare);
           assert.equal(
               "[-2,\"-1\",\"\",\"1\",5,\"10\",\"43\",null,null,null,null]",
               JSON.stringify(a));
@@ -305,7 +312,7 @@ describe(
         it('compare string', function() {
           var a = [ "a", null, "Z", undefined, "", "-1", null, 5, -2,
               undefined, "10" ];
-          a.sort($_.Table.Column.Type.get("string").compare);
+          a.sort($_.Type.string.compare);
           assert.equal(
               "[\"\",\"-1\",-2,\"10\",5,\"Z\",\"a\",null,null,null,null]", JSON
                   .stringify(a));
@@ -363,9 +370,9 @@ describe('utils', function() {
       });
     });
   });
-  describe('#Tokenator', function() {
-    it('check Tokenator functionality', function() {
-      var tt = $_.utils.Tokenator("a/b/c//dd/x/v/l", "/?&=");
+  describe('#Tokenizer', function() {
+    it('check Tokenizer functionality', function() {
+      var tt = $_.utils.Tokenizer("a/b/c//dd/x/v/l", "/?&=");
       assert.equal(tt.nextDelimiter(), "");
       assert.equal(tt.nextValue(), "a");
       assert.equal(tt.nextDelimiter(), "/");
@@ -461,6 +468,19 @@ describe('utils', function() {
       assert.ok(e instanceof Error);
       assert.equal(e.message, "msg  a:'a', b:'b', c:'c'");
       assert.equal(e.stack.split(/\n/)[0], "Error: msg  a:'a', b:'b', c:'c'");
+    });
+  });
+  describe('#padWith()', function() {
+    it('', function() {
+      assert.equal( $_.utils.padWith(5, '00'), '05');
+      assert.equal( $_.utils.padWith(345, '00'), '45');
+      assert.equal( $_.utils.padWith(35, '00'), '35');
+      assert.equal( $_.utils.padWith(35, '0000'), '0035');
+    });
+  });
+  describe('#dateToIsoString()', function() {
+    it('', function() {
+      assert.equal( $_.utils.dateToIsoString(new Date(Date.UTC(1980,0,1))), '1980-01-01T00:00:00.0000Z');
     });
   });
 });
