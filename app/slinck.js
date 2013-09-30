@@ -1,6 +1,7 @@
 (function() {
+  
   var WUN = 653826927654; // weird unique number
-
+  
   var $_ = new Object();
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = $_;
@@ -86,6 +87,14 @@
       return x === undefined ? "undefined" : x === null ? "null"
           : isString(x) ? "'" + x + "'" : isArray(x) ? "["
               + join(x, ",", stringify) + "]" : x.toString();
+    }
+
+    function ensureDate(a) {
+      return a instanceof Date ? a : new Date(a);
+    }
+
+    function ensureString(a) {
+      return isString(a) ? a : String(a);
     }
 
     function error(params, input) {
@@ -211,7 +220,7 @@
     }
     return convertListToObject([ convertListToObject, isArray, append, size,
         join, error, applyOnAll, assert, Tokenizer, isString, stringify,
-        padWith, dateToIsoString ]);
+        padWith, dateToIsoString, ensureDate, ensureString ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -567,6 +576,7 @@
       this.name = name;
       this.compare = Type.nullsCompare(sortFunction);
       Type[name] = this;
+      $_.utils.assert(Type[name],this,"Type is frozen for changes. Cannot add:"+name);
     }
 
     Type.nullsCompare = function(f) {
@@ -591,8 +601,8 @@
     };
 
     new Type("string", function(a, b) {
-      var aStr = $_.utils.isString(a) ? a : String(a);
-      var bStr = $_.utils.isString(b) ? b : String(b);
+      var aStr = $_.utils.ensureString(a);
+      var bStr = $_.utils.ensureString(b);
       return aStr === bStr ? 0 : aStr < bStr ? -1 : 1;
     });
 
@@ -605,10 +615,16 @@
     });
 
     new Type("date", function(a, b) {
-      return a ? (b ? 0 : 1) : (b ? -1 : 0);
+      var aDateValueOf = $_.utils.ensureDate(a).valueOf();
+      var bDateValueOf = $_.utils.ensureDate(b).valueOf();
+      return aDateValueOf === bDateValueOf ? 0
+          : aDateValueOf < bDateValueOf ? -1 : 1;
     });
 
+    new Type("blob", Type.string.compare);
+    Object.freeze(Type);
 
+    
     function ColumnRole(name) {
       this.name = name;
       ColumnRole[name] = this;
@@ -617,7 +633,8 @@
     new ColumnRole("key");
     new ColumnRole("data");
     new ColumnRole("attachment");
-
+    
+    Object.freeze(ColumnRole);
 
     /** /Type */
 

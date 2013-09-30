@@ -81,7 +81,7 @@ describe(
       function boundXCheck(snk, x, v) {
         assert.equal(x + "=" + v, snk.bound(x).toString());
       }
-      
+
       function boundEqCheck(snk) {
         boundXCheck(snk, "eq", "a/b/c");
       }
@@ -201,17 +201,21 @@ describe(
             });
             it('test sort', function() {
               var g = $_.Graph.parse("x=(q,b=(c=(q))),a=(b)");
-              assert.equal($_.utils.stringify(g.sort()),"['q','c','b','a','x']");
+              assert.equal($_.utils.stringify(g.sort()),
+                  "['q','c','b','a','x']");
             });
-            it('parse exception: extra parenthesis at the end', function() {
-              try {
-                $_.Graph.parse("x=(q,b=(c=(q))),a=(b))");
-                assert.ok(false);
-              } catch (e) {
-                assert.equal(e.message,
-                    "unbalanced parenthesis  t:'x=(q,b=(c=(q))),a=(b)) <-i-> '");
-              }
-            });
+            it(
+                'parse exception: extra parenthesis at the end',
+                function() {
+                  try {
+                    $_.Graph.parse("x=(q,b=(c=(q))),a=(b))");
+                    assert.ok(false);
+                  } catch (e) {
+                    assert
+                        .equal(e.message,
+                            "unbalanced parenthesis  t:'x=(q,b=(c=(q))),a=(b)) <-i-> '");
+                  }
+                });
             it(
                 'parse exception: missing parenthesis at the end',
                 function() {
@@ -266,10 +270,12 @@ describe(
                 });
             it('sort Table', function() {
               var table = new $_.Table();
-              table.addColumn("name",null,$_.Type.string,$_.ColumnRole.key);
-              table.addColumn("description",null,$_.Type.string,$_.ColumnRole.data);
-              table.addColumn("file",null,$_.Type.file,$_.ColumnRole.attachment);
-              table.addColumn("modified",null,$_.Type.date,$_.ColumnRole.data);
+              table.addColumn("name", null, $_.Type.string, $_.ColumnRole.key);
+              table.addColumn("description", null, $_.Type.string,
+                  $_.ColumnRole.data);
+              table.addColumn("modified", null, $_.Type.date,
+                  $_.ColumnRole.data);
+              
             });
           });
       describe(
@@ -288,38 +294,65 @@ describe(
                   }
                 });
           });
-      describe('#Column.Type', function() {
-        it('compare boolean',
-            function() {
+      describe(
+          '#Column.Type',
+          function() {
+            it('compare boolean', function() {
               var a = [ true, null, false, undefined, null, true, undefined,
                   false ];
               a.sort($_.Type.boolean.compare);
-              assert.equal("[false,false,true,true,null,null,null,null]", JSON
-                  .stringify(a));
+              assert.equal(
+                  "[false,false,true,true,null,null,undefined,undefined]",
+                  $_.utils.stringify(a));
               assert.equal(a[6], undefined);
               assert.equal(a[7], undefined);
             });
-        it('compare number', function() {
-          var a = [ "43", null, "1", undefined, "", null, 5, -2, "-1",
-              undefined, "10" ];
-          a.sort($_.Type.number.compare);
-          assert.equal(
-              "[-2,\"-1\",\"\",\"1\",5,\"10\",\"43\",null,null,null,null]",
-              JSON.stringify(a));
-          assert.equal(a[10], undefined);
-          assert.equal(a[11], undefined);
-        });
-        it('compare string', function() {
-          var a = [ "a", null, "Z", undefined, "", "-1", null, 5, -2,
-              undefined, "10" ];
-          a.sort($_.Type.string.compare);
-          assert.equal(
-              "[\"\",\"-1\",-2,\"10\",5,\"Z\",\"a\",null,null,null,null]", JSON
-                  .stringify(a));
-          assert.equal(a[10], undefined);
-          assert.equal(a[11], undefined);
-        });
-      });
+            it('compare number', function() {
+              var a = [ "43", null, "1", undefined, "", null, 5, -2, "-1",
+                  undefined, "10" ];
+              a.sort($_.Type.number.compare);
+              assert.equal(
+                  "[-2,'-1','','1',5,'10','43',null,null,undefined,undefined]",
+                  $_.utils.stringify(a));
+              assert.equal(a[10], undefined);
+              assert.equal(a[11], undefined);
+            });
+            it('compare string', function() {
+              var a = [ "a", null, "Z", undefined, "", "-1", null, 5, -2,
+                        undefined, "10" ];
+              a.sort($_.Type.string.compare);
+              assert.equal(
+                  "['','-1',-2,'10',5,'Z','a',null,null,undefined,undefined]",
+                  $_.utils.stringify(a));
+              assert.equal(a[10], undefined);
+              assert.equal(a[11], undefined);
+            });
+            it('check freeze', function() {
+              assert.ok($_.Type.blob);
+              try{
+                new $_.Type("zhlob", $_.Type.string.compare);
+                assert.ok(false, "should throw exception");
+              }catch(e){
+                assert
+                .equal(e.message,
+                    "Type is frozen for changes. Cannot add:zhlob  expected:[object Object], provided:undefined");
+              
+              }
+              assert.ok(!$_.Type.zhlob);
+            });
+            it(
+                'compare date',
+                function() {
+                  var a = [ "1980-01-02", "December 31, 1979", null,
+                      new Date("1980-01-01T00:00:00.0000Z"), undefined ];
+                  a.sort($_.Type.date.compare);
+                  assert
+                      .equal(
+                          "['December 31, 1979',Mon Dec 31 1979 16:00:00 GMT-0800 (PST),'1980-01-02',null,undefined]",
+                          $_.utils.stringify(a));
+                  assert.equal(a[4], undefined);
+                });
+          });
     });
 
 describe('utils', function() {
@@ -449,7 +482,8 @@ describe('utils', function() {
       assert.equal($_.utils.stringify(new String("abc")), "'abc'");
       assert.equal($_.utils.stringify(5), "5");
       assert.equal($_.utils.stringify([]), "[]");
-      assert.equal($_.utils.stringify([3,'a',[true,[]]]), "[3,'a',[true,[]]]");
+      assert.equal($_.utils.stringify([ 3, 'a', [ true, [] ] ]),
+          "[3,'a',[true,[]]]");
     });
   });
   describe('#error()', function() {
@@ -472,15 +506,18 @@ describe('utils', function() {
   });
   describe('#padWith()', function() {
     it('', function() {
-      assert.equal( $_.utils.padWith(5, '00'), '05');
-      assert.equal( $_.utils.padWith(345, '00'), '45');
-      assert.equal( $_.utils.padWith(35, '00'), '35');
-      assert.equal( $_.utils.padWith(35, '0000'), '0035');
+      assert.equal($_.utils.padWith(5, '00'), '05');
+      assert.equal($_.utils.padWith(345, '00'), '45');
+      assert.equal($_.utils.padWith(35, '00'), '35');
+      assert.equal($_.utils.padWith(685, '0000'), '0685');
     });
   });
   describe('#dateToIsoString()', function() {
     it('', function() {
-      assert.equal( $_.utils.dateToIsoString(new Date(Date.UTC(1980,0,1))), '1980-01-01T00:00:00.0000Z');
+      var isoDate = $_.utils.dateToIsoString(new Date(Date.UTC(1980, 0, 1)));
+      assert.equal(isoDate, '1980-01-01T00:00:00.0000Z');
+      assert.equal($_.utils.dateToIsoString(new Date(isoDate)),
+          '1980-01-01T00:00:00.0000Z');
     });
   });
 });
