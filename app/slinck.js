@@ -1,7 +1,7 @@
 (function() {
-  
+
   var WUN = 653826927654; // weird unique number
-  
+
   var $_ = new Object();
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = $_;
@@ -13,6 +13,56 @@
   $_.utils = (function() {
     function isArray(o) {
       return Object.prototype.toString.call(o) === '[object Array]';
+    }
+
+    function isString(a) {
+      return typeof a === "string" || a instanceof String;
+    }
+
+    function isNumber(a) {
+      return typeof a === "number" || a instanceof Number;
+    }
+
+    function isBoolean(a) {
+      return typeof a === "boolean" || a instanceof Boolean;
+    }
+
+    function isFunction(a) {
+      return typeof a === "function" || a instanceof Function;
+    }
+
+    function isDate(a) {
+      return a instanceof Date;
+    }
+
+    function isNull(a) {
+      return a === null || a === undef;
+    }
+
+    function isPrimitive(a) {
+      return isString(a) || isNumber(a) || isBoolean(a) || isFunction(a)
+          || isDate(a);
+    }
+
+    function isObject(a) {
+      return !isPrimitive(a) && !isArray(a);
+    }
+
+    function extractArray(args) {
+      var array = null;
+      if (args.length === 0) {
+        array = [];
+      } else if (args.length > 1) {
+        array = args;
+      } else if (args.length === 1) {
+        var arg = args[0];
+        if (isArray(arg)) {
+          array = arg;
+        } else if (isPrimitive(arg)) {
+          array = [ arg ];
+        }
+      }
+      return array;
     }
 
     function convertListToObject(list, nameProperty) {
@@ -77,10 +127,6 @@
         j--;
       }
       return s;
-    }
-
-    function isString(a) {
-      return typeof a === "string" || a instanceof String;
     }
 
     function stringify(x) {
@@ -219,8 +265,10 @@
       };
     }
     return convertListToObject([ convertListToObject, isArray, append, size,
-        join, error, applyOnAll, assert, Tokenizer, isString, stringify,
-        padWith, dateToIsoString, ensureDate, ensureString ]);
+        join, error, applyOnAll, assert, Tokenizer, stringify, padWith,
+        dateToIsoString, ensureDate, ensureString, isObject, isString,
+        isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
+        extractArray ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -576,7 +624,8 @@
       this.name = name;
       this.compare = Type.nullsCompare(sortFunction);
       Type[name] = this;
-      $_.utils.assert(Type[name],this,"Type is frozen for changes. Cannot add:"+name);
+      $_.utils.assert(Type[name], this,
+          "Type is frozen for changes. Cannot add:" + name);
     }
 
     Type.nullsCompare = function(f) {
@@ -624,16 +673,16 @@
     new Type("blob", Type.string.compare);
     Object.freeze(Type);
 
-    
     function ColumnRole(name) {
       this.name = name;
       ColumnRole[name] = this;
     }
 
-    new ColumnRole("key");
+    new ColumnRole("grouping_key");
+    new ColumnRole("primary_key");
     new ColumnRole("data");
     new ColumnRole("attachment");
-    
+
     Object.freeze(ColumnRole);
 
     /** /Type */
@@ -829,49 +878,213 @@
 
     /** Table */
 
-    function Column(name, title, type, key) {
+    function Column(name, title, type) {
       $_.utils.assert(this instanceof Column, true,
-          "please use new, when calling this function");
+          "please use 'new', when calling this function");
       this.name = name;
       this.title = title;
       this.type = type;
-      this.key = key;
     }
 
-    function Table(sl, columns, data, version) {
+    
+    function Table(columns, data) {
       $_.utils.assert(this instanceof Table, true,
-          "please use new, when calling this function");
-      this.sl = sl;
-      this.columns = columns ? columns : [];
+          "please use 'new', when calling this function");
+      this.columns = []; 
+      this.columns.hash = {};
+      this.columns.push = function(){
+        for ( var i = 0; i < arguments.length; i++) {
+          if(this.hash[arguments[i].name]){
+            throw $_.utils.error({
+              message : "duplicate column",
+              name : arguments[i].name,
+              at : this.length
+            });
+          }
+          Array.prototype.push.apply(this,arguments);
+          this.hash[arguments[i].name] = arguments[i] ; 
+        }
+      };
+      if( columns && columns.length > 0 ){
+        this.columns.push.apply(this.columns, columns);
+      } 
       this.data = data ? data : [];
-      this.version = version ? version : null;
     }
 
     $_.utils.append(Table.prototype, {
-      newRow : function(values) {
-        var row = {};
-        for ( var colIdx = 0; colIdx < columns.length; colIdx++) {
-          var n = this.columns[colIdx].name;
-          row[n] = values ? values[n] : null;
+      rows: function() {
+        var rowIds = $_.utils.extractArray(arguments);
+        if (!rowIds || rowIds.length === 0) {
+          return null;
         }
-        return row;
+        var rows = [];
+        for ( var i = 0; i < rowIds.length; i++) {
+          var rowId = rowIds[i];
+          rows.push(this.row(rowId));
+        }
+        return rows;
       },
-      addRow : function(row) {
-        this.data.push(row);
+      row: function(rowId) {
+        if (rowId < 0 && rowId >= this.data.length)
+            throw $_.utils.error({
+              message : "rowId outside of data range",
+              rowId : rowId,
+              dataLength : this.data.length
+            });
+        return this.data[rowId];
       },
-      addColumn : function(name, title, type, key) {
-        this.columns.push(new Column(name, title, type, key));
+      add : function(rowData) {
+        var rowId = this.data.length ;
+        this.data.push(rowData);
+        rowData._rowId = rowId;
+        return rowId;
+      },
+      set : function(rowId,rowData) {
+        var row = this.row(rowId);
+        var rowId = this.data.length ;
+        this.data.push(rowData);
+        rowData._rowId = rowId;
+        return rowId;
+      },
+      addColumn : function(name, title, type) {
+        $_.utils.assert(0,this.data.length,"Data has to be empty");
+        this.columns.push(new Column(name, title, type));
+      },
+      checkColumns: function(keys){
+        for ( var keyIdx = 0; keyIdx < keys.length; keyIdx++) {
+          var k = keys[keyIdx];
+          if( !this.columns.hash[k] ){
+            throw $_.utils.error({message: "column does not exist", key: k});
+          } 
+        }
+      },
+      makeCompare: function(){
+        var keys = $_.utils.extractArray(arguments);
+        this.checkColumns(keys);
+        var self = this;
+        return function(rowIdA,rowIdB){
+          var rowA = self.row(rowIdA);
+          var rowB = self.row(rowIdB);
+          for ( var keyIdx = 0; keyIdx < keys.length; keyIdx++) {
+            var k = keys[keyIdx];
+            var r = self.columns.hash[k].type.compare(rowA[k],rowB[k]);
+            if( r!==0 ){
+              return r;
+            }
+          }
+          return 0;
+        };
       }
     });
-
+    
+    
     Column.Type = Type;
     Column.Role = ColumnRole;
     Table.Column = Column;
 
     /** /Table */
 
+    /** Index */
+    function Index(table, keys, unique){
+      $_.utils.assert(this instanceof Index, true,
+      "please use 'new', when calling this function");
+     
+    }
+    
+    $_.utils.append(Index.prototype, {
+      initKeys : function(values) {
+        $_.utils.assert(0, this.data.length, "Data should be empty");
+        this.groupingKeys = [];
+        this.primaryKeys = [];
+        this.indexKeys = [];
+        this.sortedRowIds = [];
+        this.index = {};
+        for (var colIdx = 0; colIdx < this.columns.length; colIdx++) {
+          if (this.columns[colIdx].role === ColumnRole.grouping_key) {
+            this.groupingKeys.push(this.columns[colIdx].name);
+          } else if (this.columns[colIdx].role === ColumnRole.primary_key) {
+            this.primaryKeys.push(this.columns[colIdx].name);
+          } else {
+            break;
+          }
+          this.indexKeys.push(this.columns[colIdx].name);
+        }
+      },
+      hasKeys : function() {
+        return this.indexKeys.length > 0;
+      },
+      getByKey : function(keys) {
+        if (!this.hasKeys()) {
+          throw $_.utils.error({message: "table has no keys defined"});
+        }else{
+          var array = $_.utils.extractArray(arguments);
+          var rowIds = this.sortedRowIds;
+          var index = this.index;
+          function evaluateIndex(length, getEntry) {
+            for ( var i = 0; i < length; i++) {
+              var entry = getEntry(i);
+              if (entry) {
+                rowIds = entry.rowIds;
+                index = entry.next;
+              } else {
+                rowIds = [];
+                break;
+              }
+            }
+          }
+          if (array != null) {
+            evaluateIndex(array.length, function(i) {
+              return index[array[i]];
+            });
+          } else {
+            evaluateIndex(this.indexKeys.length, function(i) {
+              return index[keys[this.indexKeys[i]]];
+            });
+          }
+        }
+        return this.getByIDs(rowIds);
+      },
+      
+     getByIDs : function() {
+       var rowIds = $_.utils.extractArray(arguments);
+        if (!rowIds || rowIds.length === 0) {
+          return null;
+        }
+        var rows = [];
+        for ( var i = 0; i < rowIds.length; i++) {
+          var rowId = rowIds[i];
+          if (rowId >= 0 && rowId < this.data.length)
+            throw $_.utils.error({
+              message : "rowId outside of data range",
+              rowId : rowId,
+              dataLength : this.data.length
+            });
+          rows.push(this.data[rowId]);
+        }
+        return rows;
+      },
+      add : function(rowData) {
+        if(this.primaryKeys > 0){
+          var current = getByKey(rowData);
+          if(current && current.length ){
+            throw $_.utils.error({ message: "Duplicate key", rowData: rowData, current: current});
+          }
+        }
+        var rowId = this.data.length ;
+        this.data.push(rowData);
+        rowData._rowId = rowId;
+        if(this.indexKeys.length>0){
+          
+        }
+        return rowId;
+      },
+   
+    });
+    
+    /** /Index */
+
     return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
-        Type, ColumnRole ]);
+        Type, ColumnRole, Index ]);
   })());
 
 })();

@@ -265,16 +265,42 @@ describe(
                   } catch (e) {
                     assert
                         .equal(e.message,
-                            "please use new, when calling this function  expected:true, provided:false");
+                            "please use 'new', when calling this function  expected:true, provided:false");
                   }
                 });
             it('sort Table', function() {
               var table = new $_.Table();
-              table.addColumn("name", null, $_.Type.string, $_.ColumnRole.key);
-              table.addColumn("description", null, $_.Type.string,
-                  $_.ColumnRole.data);
-              table.addColumn("modified", null, $_.Type.date,
-                  $_.ColumnRole.data);
+              table.addColumn("name", null, $_.Type.string);
+              table.addColumn("description", null, $_.Type.string );
+              table.addColumn("modified", null, $_.Type.date );
+              try{
+                table.addColumn("description", null, $_.Type.string );
+                assert.ok(false);
+              }catch (e) {
+                assert.equal(e.params.name, "description");
+              }
+              var r0 = table.add({ name: "a", description: "d", modified: new Date() });
+              var r1 = table.add({ name: "a", description: "x", modified: new Date(new Date().getTime() - 60*60*24*365) });
+              assert.equal(0,r0);
+              assert.equal(1,r1);
+              assert.equal(table.columns.hash.name.type,$_.Type.string);
+              assert.equal(table.columns[0].name,"name");
+              var compareNameDescriptionDate=table.makeCompare(["name", "description","modified"]);
+              var compareDateDescription=table.makeCompare(["modified", "description"]);
+              try{
+                table.makeCompare(["date", "description"]);
+                assert.ok(false);
+              }catch (e) {
+                assert.equal(e.params.key, "date");
+              }
+              assert.equal(compareNameDescriptionDate(0,1)<0,true);
+              assert.equal(compareNameDescriptionDate(1,0)>0,true);
+              assert.equal(compareNameDescriptionDate(1,1)===0,true);
+              assert.equal(compareNameDescriptionDate(0,0)===0,true);
+              assert.equal(compareDateDescription(0,1)>0,true);
+              assert.equal(compareDateDescription(1,0)<0,true);
+              assert.equal(compareDateDescription(1,1)===0,true);
+              assert.equal(compareDateDescription(0,0)===0,true);
               
             });
           });
@@ -290,7 +316,7 @@ describe(
                   } catch (e) {
                     assert
                         .equal(e.message,
-                            "please use new, when calling this function  expected:true, provided:false");
+                            "please use 'new', when calling this function  expected:true, provided:false");
                   }
                 });
           });
@@ -319,7 +345,7 @@ describe(
             });
             it('compare string', function() {
               var a = [ "a", null, "Z", undefined, "", "-1", null, 5, -2,
-                        undefined, "10" ];
+                  undefined, "10" ];
               a.sort($_.Type.string.compare);
               assert.equal(
                   "['','-1',-2,'10',5,'Z','a',null,null,undefined,undefined]",
@@ -327,19 +353,22 @@ describe(
               assert.equal(a[10], undefined);
               assert.equal(a[11], undefined);
             });
-            it('check freeze', function() {
-              assert.ok($_.Type.blob);
-              try{
-                new $_.Type("zhlob", $_.Type.string.compare);
-                assert.ok(false, "should throw exception");
-              }catch(e){
-                assert
-                .equal(e.message,
-                    "Type is frozen for changes. Cannot add:zhlob  expected:[object Object], provided:undefined");
-              
-              }
-              assert.ok(!$_.Type.zhlob);
-            });
+            it(
+                'check freeze',
+                function() {
+                  assert.ok($_.Type.blob);
+                  try {
+                    new $_.Type("zhlob", $_.Type.string.compare);
+                    assert.ok(false, "should throw exception");
+                  } catch (e) {
+                    assert
+                        .equal(
+                            e.message,
+                            "Type is frozen for changes. Cannot add:zhlob  expected:[object Object], provided:undefined");
+
+                  }
+                  assert.ok(!$_.Type.zhlob);
+                });
             it(
                 'compare date',
                 function() {
