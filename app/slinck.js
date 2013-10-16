@@ -112,19 +112,20 @@
       if (!delimiter) {
         delimiter = ',';
       }
-      var delimit = (typeof delimiter === 'function') ? delimiter : function(
-          array, i, j) {
-        return (i < 0 || j <= 0) ? '' : delimiter;
+      var doDelimit = (typeof delimiter === 'function') ? delimiter : function(
+          array, positionFromBegining, positionFromEnd) {
+        return (positionFromBegining < 0 || positionFromEnd <= 0) ? ''
+            : delimiter;
       };
-      var i = -1;
-      var j = array.length;
-      while (i < array.length) {
-        if (i >= 0) {
-          s += toString(array[i]);
+      var positionFromBegining = -1;
+      var positionFromEnd = array.length;
+      while (positionFromBegining < array.length) {
+        if (positionFromBegining >= 0) {
+          s += toString(array[positionFromBegining]);
         }
-        s += delimit(array, i, j);
-        i++;
-        j--;
+        s += doDelimit(array, positionFromBegining, positionFromEnd);
+        positionFromBegining++;
+        positionFromEnd--;
       }
       return s;
     }
@@ -226,6 +227,27 @@
       };
     }
 
+    function binarySearch(searchFor, array, comparator, mapper) {
+      var mapToValue = mapper || function(x) {
+        return x;
+      };
+      var min = 0;
+      var max = array.length - 1;
+      var mid, r;
+      while (min <= max) {
+        mid = ((min + max) / 2) | 0;
+        r = comparator(searchFor, mapToValue(array[mid]));
+        if (r > 0) {
+          min = mid + 1;
+        } else if (r < 0) {
+          max = mid - 1;
+        } else {
+          return mid;
+        }
+      }
+      return -1 - min;
+    }
+
     function Tokenizer(s, delimiters) {
       var i = 0;
 
@@ -268,7 +290,7 @@
         join, error, applyOnAll, assert, Tokenizer, stringify, padWith,
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
-        extractArray ]);
+        extractArray, binarySearch ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -886,33 +908,32 @@
       this.type = type;
     }
 
-    
     function Table(columns, data) {
       $_.utils.assert(this instanceof Table, true,
           "please use 'new', when calling this function");
-      this.columns = []; 
+      this.columns = [];
       this.columns.hash = {};
-      this.columns.push = function(){
+      this.columns.push = function() {
         for ( var i = 0; i < arguments.length; i++) {
-          if(this.hash[arguments[i].name]){
+          if (this.hash[arguments[i].name]) {
             throw $_.utils.error({
               message : "duplicate column",
               name : arguments[i].name,
               at : this.length
             });
           }
-          Array.prototype.push.apply(this,arguments);
-          this.hash[arguments[i].name] = arguments[i] ; 
+          Array.prototype.push.apply(this, arguments);
+          this.hash[arguments[i].name] = arguments[i];
         }
       };
-      if( columns && columns.length > 0 ){
+      if (columns && columns.length > 0) {
         this.columns.push.apply(this.columns, columns);
-      } 
+      }
       this.data = data ? data : [];
     }
 
     $_.utils.append(Table.prototype, {
-      rows: function() {
+      rows : function() {
         var rowIds = $_.utils.extractArray(arguments);
         if (!rowIds || rowIds.length === 0) {
           return null;
@@ -924,60 +945,86 @@
         }
         return rows;
       },
-      row: function(rowId) {
+      row : function(rowId) {
         if (rowId < 0 && rowId >= this.data.length)
-            throw $_.utils.error({
-              message : "rowId outside of data range",
-              rowId : rowId,
-              dataLength : this.data.length
-            });
+          throw $_.utils.error({
+            message : "rowId outside of data range",
+            rowId : rowId,
+            dataLength : this.data.length
+          });
         return this.data[rowId];
       },
       add : function(rowData) {
-        var rowId = this.data.length ;
+        var rowId = this.data.length;
         this.data.push(rowData);
         rowData._rowId = rowId;
         return rowId;
       },
-      set : function(rowId,rowData) {
+      set : function(rowId, rowData) {
         var row = this.row(rowId);
-        var rowId = this.data.length ;
-        this.data.push(rowData);
-        rowData._rowId = rowId;
-        return rowId;
-      },
-      addColumn : function(name, title, type) {
-        $_.utils.assert(0,this.data.length,"Data has to be empty");
-        this.columns.push(new Column(name, title, type));
-      },
-      checkColumns: function(keys){
-        for ( var keyIdx = 0; keyIdx < keys.length; keyIdx++) {
-          var k = keys[keyIdx];
-          if( !this.columns.hash[k] ){
-            throw $_.utils.error({message: "column does not exist", key: k});
-          } 
+        if (row !== rowData) {
+          this.checkColumns(Object.keys(rowData));
+          $_.utils.append(row, rowData);
         }
       },
-      makeCompare: function(){
+      addColumn : function(name, title, type) {
+        $_.utils.assert(0, this.data.length, "Data has to be empty");
+        this.columns.push(new Column(name, title, type));
+      },
+      checkColumns : function(keys) {
+        for ( var keyIdx = 0; keyIdx < keys.length; keyIdx++) {
+          this.checkColumn(keys[keyIdx]);
+        }
+      },
+      checkColumn : function(k) {
+        if ("_rowId" !== k && !this.columns.hash[k]) {
+          throw $_.utils.error({
+            message : "column does not exist",
+            key : k
+          });
+        }
+      },
+      makeCompare : function() {
         var keys = $_.utils.extractArray(arguments);
-        this.checkColumns(keys);
-        var self = this;
-        return function(rowIdA,rowIdB){
-          var rowA = self.row(rowIdA);
-          var rowB = self.row(rowIdB);
+        var compares = [];
+        for ( var keyIdx = 0; keyIdx < keys.length; keyIdx++) {
+          var k = keys[keyIdx];
+          var descending = (k.charAt(0) === "^");
+          if (descending) {
+            k = k.substring(1);
+            keys[keyIdx] = k;
+          }
+          this.checkColumn(k);
+          var compare = "_rowId" === k ? Type.number.compare
+              : this.columns.hash[k].type.compare;
+          if (descending) {
+            compare = Type.inverse(compare);
+          }
+          compares[keyIdx] = compare;
+        }
+        function compareValues(rowA, rowB) {
           for ( var keyIdx = 0; keyIdx < keys.length; keyIdx++) {
             var k = keys[keyIdx];
-            var r = self.columns.hash[k].type.compare(rowA[k],rowB[k]);
-            if( r!==0 ){
+            var compare = compares[keyIdx];
+            var r = compare(rowA[k], rowB[k]);
+            if (r !== 0) {
               return r;
             }
           }
           return 0;
-        };
+        }
+        var self = this;
+        function compareRowId(rowIdA, rowIdB) {
+          var rowA = self.row(rowIdA);
+          var rowB = self.row(rowIdB);
+          return compareValues(rowA, rowB);
+        }
+        ;
+        compareRowId.compareValues = compareValues;
+        return compareRowId;
       }
     });
-    
-    
+
     Column.Type = Type;
     Column.Role = ColumnRole;
     Table.Column = Column;
@@ -985,102 +1032,63 @@
     /** /Table */
 
     /** Index */
-    function Index(table, keys, unique){
+    function Index(table, keys) {
       $_.utils.assert(this instanceof Index, true,
-      "please use 'new', when calling this function");
-     
+          "please use 'new', when calling this function");
+      this.table = table;
+      this.keys = keys;
+      this.compare = table.makeCompare(keys);
+      this.index = [];
+      var sorted = true;
+      for ( var i = 0; i < table.data.length; i++) {
+        this.index[i] = i;
+        if (i > 0) {
+          if (sorted && this.compare(i - 1, i) > 0) {
+            sorted = false;
+          }
+        }
+      }
+      if (!sorted) {
+        this.index.sort(this.compare);
+      }
+      this.sorted = sorted;
     }
-    
+
     $_.utils.append(Index.prototype, {
-      initKeys : function(values) {
-        $_.utils.assert(0, this.data.length, "Data should be empty");
-        this.groupingKeys = [];
-        this.primaryKeys = [];
-        this.indexKeys = [];
-        this.sortedRowIds = [];
-        this.index = {};
-        for (var colIdx = 0; colIdx < this.columns.length; colIdx++) {
-          if (this.columns[colIdx].role === ColumnRole.grouping_key) {
-            this.groupingKeys.push(this.columns[colIdx].name);
-          } else if (this.columns[colIdx].role === ColumnRole.primary_key) {
-            this.primaryKeys.push(this.columns[colIdx].name);
-          } else {
-            break;
-          }
-          this.indexKeys.push(this.columns[colIdx].name);
+      indexOf : function(searchFor) {
+        var self = this;
+        function mapper(mappee) {
+          return self.table.row(mappee);
         }
+        return $_.utils.binarySearch(searchFor, this.index,
+            this.compare.compareValues, mapper);
       },
-      hasKeys : function() {
-        return this.indexKeys.length > 0;
+      row : function(rowNum) {
+        return this.table.row(this.index[rowNum]);
       },
-      getByKey : function(keys) {
-        if (!this.hasKeys()) {
-          throw $_.utils.error({message: "table has no keys defined"});
-        }else{
-          var array = $_.utils.extractArray(arguments);
-          var rowIds = this.sortedRowIds;
-          var index = this.index;
-          function evaluateIndex(length, getEntry) {
-            for ( var i = 0; i < length; i++) {
-              var entry = getEntry(i);
-              if (entry) {
-                rowIds = entry.rowIds;
-                index = entry.next;
-              } else {
-                rowIds = [];
-                break;
-              }
-            }
-          }
-          if (array != null) {
-            evaluateIndex(array.length, function(i) {
-              return index[array[i]];
-            });
-          } else {
-            evaluateIndex(this.indexKeys.length, function(i) {
-              return index[keys[this.indexKeys[i]]];
-            });
-          }
+      merge : function(rowData) {
+        var rowNum = this.indexOf(rowData);
+        if (rowNum < 0) {
+          rowNum = -1 - rowNum;
+          var rowId = this.table.add(rowData);
+          this.index.splice(rowNum, 0, rowId);
+        } else {
+          var mergeRow = this.table.row(this.index[rowNum]);
+          $_.utils.append(mergeRow, rowData);
         }
-        return this.getByIDs(rowIds);
-      },
-      
-     getByIDs : function() {
-       var rowIds = $_.utils.extractArray(arguments);
-        if (!rowIds || rowIds.length === 0) {
-          return null;
-        }
-        var rows = [];
-        for ( var i = 0; i < rowIds.length; i++) {
-          var rowId = rowIds[i];
-          if (rowId >= 0 && rowId < this.data.length)
-            throw $_.utils.error({
-              message : "rowId outside of data range",
-              rowId : rowId,
-              dataLength : this.data.length
-            });
-          rows.push(this.data[rowId]);
-        }
-        return rows;
+        return rowNum;
       },
       add : function(rowData) {
-        if(this.primaryKeys > 0){
-          var current = getByKey(rowData);
-          if(current && current.length ){
-            throw $_.utils.error({ message: "Duplicate key", rowData: rowData, current: current});
-          }
+        var rowNum = this.indexOf(rowData);
+        if (rowNum < 0) {
+          rowNum = -1 - rowNum;
         }
-        var rowId = this.data.length ;
-        this.data.push(rowData);
-        rowData._rowId = rowId;
-        if(this.indexKeys.length>0){
-          
-        }
-        return rowId;
-      },
-   
+        var rowId = this.table.add(rowData);
+        this.index.splice(rowNum, 0, rowId);
+        return rowNum;
+      }
     });
-    
+
     /** /Index */
 
     return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,

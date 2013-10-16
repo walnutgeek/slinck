@@ -253,6 +253,168 @@ describe(
               }
             });
           });
+      function descriptionTable() {
+        var table = new $_.Table();
+        table.addColumn("name", null, $_.Type.string);
+        table.addColumn("description", null, $_.Type.string);
+        table.addColumn("modified", null, $_.Type.date);
+        table.add({
+          name : "a",
+          description : "a",
+          modified : new Date()
+        });
+        table.add({
+          name : "a",
+          description : "b",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "a",
+          description : "t",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "b",
+          description : "a",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "b",
+          description : "m",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "c",
+          description : "l",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "c",
+          description : "q",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "x",
+          description : "a",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "x",
+          description : "x",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "x",
+          description : "y",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "x",
+          description : "z",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "z",
+          description : "a",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        table.add({
+          name : "z",
+          description : "x",
+          modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+        });
+        return table;
+      }
+      describe(
+          '#Index',
+          function() {
+
+            it(
+                'check if it will throw exception without new',
+                function() {
+                  try {
+                    $_.Index();
+                    assert.ok(false);
+                  } catch (e) {
+                    assert
+                        .equal(e.message,
+                            "please use 'new', when calling this function  expected:true, provided:false");
+                  }
+                });
+            it('index ordered', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "name", "description" ]);
+              for ( var i = 0; i < index.index.length; i++) {
+                assert.equal(index.index[i], i);
+              }
+              assert.equal(index.sorted, true);
+
+            });
+            it('index sort', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "description", "name" ]);
+              assert.equal($_.utils.stringify(index.index),
+                  "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
+              assert.equal(index.sorted, false);
+
+            });
+            it('index indexOf', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "description", "name" ]);
+              // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
+              assert.equal(10, index.indexOf({
+                description : "x",
+                name : "z"
+              }));
+              assert.equal(-1, index.indexOf({
+                name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.equal(-3, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+            });
+            it('ordered indexOf', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "name", "description" ]);
+              assert.equal(10, index.indexOf({
+                name : "x",
+                description : "z"
+              }));
+              assert.equal(-1, index.indexOf({
+                name : "a",
+                description : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                name : "a",
+                description : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                name : "a",
+                description : "aa"
+              }));
+              assert.equal(1, index.indexOf({
+                name : "a",
+                description : "b"
+              }));
+              assert.equal(-3, index.indexOf({
+                name : "a",
+                description : "c"
+              }));
+            });
+          });
       describe(
           '#Table',
           function() {
@@ -268,40 +430,75 @@ describe(
                             "please use 'new', when calling this function  expected:true, provided:false");
                   }
                 });
+            it('set', function() {
+              var table = descriptionTable();
+              var row = table.row(0);
+              assert.equal(row.name,"a");
+              assert.equal(row.description,"a");
+              assert.ok(row.modified !== null);
+              table.set(0,{name: "q",modified: null});
+              assert.equal(row.name,"q");
+              assert.equal(row.description,"a");
+              assert.ok(row.modified === null);
+            });
             it('sort Table', function() {
               var table = new $_.Table();
               table.addColumn("name", null, $_.Type.string);
-              table.addColumn("description", null, $_.Type.string );
-              table.addColumn("modified", null, $_.Type.date );
-              try{
-                table.addColumn("description", null, $_.Type.string );
+              table.addColumn("description", null, $_.Type.string);
+              table.addColumn("modified", null, $_.Type.date);
+              try {
+                table.addColumn("description", null, $_.Type.string);
                 assert.ok(false);
-              }catch (e) {
+              } catch (e) {
                 assert.equal(e.params.name, "description");
               }
-              var r0 = table.add({ name: "a", description: "d", modified: new Date() });
-              var r1 = table.add({ name: "a", description: "x", modified: new Date(new Date().getTime() - 60*60*24*365) });
-              assert.equal(0,r0);
-              assert.equal(1,r1);
-              assert.equal(table.columns.hash.name.type,$_.Type.string);
-              assert.equal(table.columns[0].name,"name");
-              var compareNameDescriptionDate=table.makeCompare(["name", "description","modified"]);
-              var compareDateDescription=table.makeCompare(["modified", "description"]);
-              try{
-                table.makeCompare(["date", "description"]);
+              var r0 = table.add({
+                name : "a",
+                description : "d",
+                modified : new Date()
+              });
+              var r1 = table.add({
+                name : "a",
+                description : "x",
+                modified : new Date(new Date().getTime() - 60 * 60 * 24 * 365)
+              });
+              assert.equal(0, r0);
+              assert.equal(1, r1);
+              assert.equal(table.columns.hash.name.type, $_.Type.string);
+              assert.equal(table.columns[0].name, "name");
+              var compareNameDescriptionDate = table.makeCompare([ "name",
+                  "description", "modified" ]);
+              var compareDateDescription = table.makeCompare([ "modified",
+                  "description" ]);
+              try {
+                table.makeCompare([ "date", "description" ]);
                 assert.ok(false);
-              }catch (e) {
+              } catch (e) {
+                assert.equal(e.message, "column does not exist  key:'date'");
                 assert.equal(e.params.key, "date");
               }
-              assert.equal(compareNameDescriptionDate(0,1)<0,true);
-              assert.equal(compareNameDescriptionDate(1,0)>0,true);
-              assert.equal(compareNameDescriptionDate(1,1)===0,true);
-              assert.equal(compareNameDescriptionDate(0,0)===0,true);
-              assert.equal(compareDateDescription(0,1)>0,true);
-              assert.equal(compareDateDescription(1,0)<0,true);
-              assert.equal(compareDateDescription(1,1)===0,true);
-              assert.equal(compareDateDescription(0,0)===0,true);
-              
+              assert.equal(compareNameDescriptionDate(0, 1) < 0, true);
+              assert.equal(compareNameDescriptionDate(1, 0) > 0, true);
+              assert.equal(compareNameDescriptionDate(1, 1) === 0, true);
+              assert.equal(compareNameDescriptionDate(0, 0) === 0, true);
+              assert.equal(compareDateDescription(0, 1) > 0, true);
+              assert.equal(compareDateDescription(1, 0) < 0, true);
+              assert.equal(compareDateDescription(1, 1) === 0, true);
+              assert.equal(compareDateDescription(0, 0) === 0, true);
+              var compareDateDescription2 = table.makeCompare([ "^modified",
+                  "description" ]);
+              assert.equal(compareDateDescription2(0, 1) < 0, true);
+              assert.equal(compareDateDescription2(1, 0) > 0, true);
+              assert.equal(compareDateDescription2(1, 1) === 0, true);
+              assert.equal(compareDateDescription2(0, 0) === 0, true);
+              // pass keys as arguments
+              compareDateDescription2 = table.makeCompare("^modified",
+                  "description");
+              assert.equal(compareDateDescription2(0, 1) < 0, true);
+              assert.equal(compareDateDescription2(1, 0) > 0, true);
+              assert.equal(compareDateDescription2(1, 1) === 0, true);
+              assert.equal(compareDateDescription2(0, 0) === 0, true);
+
             });
           });
       describe(
@@ -548,5 +745,40 @@ describe('utils', function() {
       assert.equal($_.utils.dateToIsoString(new Date(isoDate)),
           '1980-01-01T00:00:00.0000Z');
     });
+  });
+  describe('#binarySearch()', function() {
+    it('found',
+        function() {
+          var array = [ 1, 2, 4, 6, 8, 10, 25 ];
+          function test(value, position) {
+            var found = $_.utils.binarySearch(value, array,
+                $_.Type.number.compare);
+            assert.equal(found, position);
+          }
+          ;
+          test(10, 5);
+          test(25, 6);
+          test(-1, -1);
+          test(3, -3);
+          test(5, -4);
+          test(6, 3);
+          test(7, -5);
+          test(8, 4);
+          test(9, -6);
+          test(24, -7);
+          test(26, -8);
+          array.splice(5, 1);
+          test(10, -6);
+          test(25, 5);
+          test(-1, -1);
+          test(3, -3);
+          test(5, -4);
+          test(6, 3);
+          test(7, -5);
+          test(8, 4);
+          test(9, -6);
+          test(24, -6);
+          test(26, -7);
+        });
   });
 });
