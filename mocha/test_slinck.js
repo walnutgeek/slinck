@@ -367,7 +367,8 @@ describe(
                 name : "z"
               }));
               assert.equal(-1, index.indexOf({
-                name : "A"
+                  description : "A",
+                  name : "A"
               }));
               assert.equal(0, index.indexOf({
                 description : "a",
@@ -492,12 +493,12 @@ describe(
               assert.equal(compareDateDescription2(1, 1) === 0, true);
               assert.equal(compareDateDescription2(0, 0) === 0, true);
               // pass keys as arguments
-              compareDateDescription2 = table.makeCompare("^modified",
-                  "description");
-              assert.equal(compareDateDescription2(0, 1) < 0, true);
-              assert.equal(compareDateDescription2(1, 0) > 0, true);
-              assert.equal(compareDateDescription2(1, 1) === 0, true);
-              assert.equal(compareDateDescription2(0, 0) === 0, true);
+              var compareDateDescriptionValues = table.makeCompare("^modified",
+                  "description").compareValues;
+              assert.equal(compareDateDescriptionValues(table.row(0), table.row(1)) < 0, true);
+              assert.equal(compareDateDescriptionValues(table.row(1), table.row(0)) > 0, true);
+              assert.equal(compareDateDescriptionValues(table.row(1), table.row(1)) === 0, true);
+              assert.equal(compareDateDescriptionValues(table.row(0), table.row(0)) === 0, true);
 
             });
           });
