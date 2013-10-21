@@ -415,6 +415,60 @@ describe(
                 description : "c"
               }));
             });
+            it('index merge', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "description", "name" ]);
+              // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
+              assert.equal(10, index.indexOf({
+                description : "x",
+                name : "z"
+              }));
+              assert.equal(-1, index.indexOf({
+                  description : "A",
+                  name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.equal(-3, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+              index.merge({
+              description : "a",
+              name : "b",
+              modified : null
+              });
+              assert.equal(-1, index.indexOf({
+                description : "A",
+                name : "A"
+            }));
+            assert.equal(0, index.indexOf({
+              description : "a",
+              name : "a"
+            }));
+            assert.equal(-2, index.indexOf({
+              description : "a",
+              name : "aa"
+            }));
+            assert.equal(1, index.indexOf({
+              description : "a",
+              name : "b"
+            }));
+            assert.equal(-3, index.indexOf({
+              description : "a",
+              name : "c"
+            }));
+           });
           });
       describe(
           '#Table',
