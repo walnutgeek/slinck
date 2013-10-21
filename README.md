@@ -2,7 +2,8 @@
 
 ## Main Goal
 
-Slinck is amalgamtion of 2 words "slick link". Slink web based system that bundles together: 
+Slinck is amalgamtion of 2 words "slick link". 
+Slinck web based system that combines together: 
  * file store
  * structural data storage
  * tasks definition and execution engine
