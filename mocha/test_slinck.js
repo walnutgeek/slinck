@@ -328,7 +328,6 @@ describe(
       describe(
           '#Index',
           function() {
-
             it(
                 'check if it will throw exception without new',
                 function() {
@@ -367,8 +366,8 @@ describe(
                 name : "z"
               }));
               assert.equal(-1, index.indexOf({
-                  description : "A",
-                  name : "A"
+                description : "A",
+                name : "A"
               }));
               assert.equal(0, index.indexOf({
                 description : "a",
@@ -415,7 +414,7 @@ describe(
                 description : "c"
               }));
             });
-            it('index merge', function() {
+            it('index.merge on existing row', function() {
               var table = descriptionTable();
               var index = new $_.Index(table, [ "description", "name" ]);
               // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
@@ -424,8 +423,64 @@ describe(
                 name : "z"
               }));
               assert.equal(-1, index.indexOf({
-                  description : "A",
-                  name : "A"
+                description : "A",
+                name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.ok(index.row(1).modified != null);
+              assert.equal(-3, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+              index.merge({
+                description : "a",
+                name : "b",
+                modified : null
+              });
+              assert.equal(-1, index.indexOf({
+                description : "A",
+                name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.ok(index.row(1).modified == null);
+              assert.equal(-3, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+            });
+            it('index.merge that creates new row', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "description", "name" ]);
+              // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
+              assert.equal(10, index.indexOf({
+                description : "x",
+                name : "z"
+              }));
+              assert.equal(-1, index.indexOf({
+                description : "A",
+                name : "A"
               }));
               assert.equal(0, index.indexOf({
                 description : "a",
@@ -444,31 +499,147 @@ describe(
                 name : "c"
               }));
               index.merge({
-              description : "a",
-              name : "b",
-              modified : null
+                description : "a",
+                name : "aa",
+                modified : null
               });
               assert.equal(-1, index.indexOf({
                 description : "A",
                 name : "A"
-            }));
-            assert.equal(0, index.indexOf({
-              description : "a",
-              name : "a"
-            }));
-            assert.equal(-2, index.indexOf({
-              description : "a",
-              name : "aa"
-            }));
-            assert.equal(1, index.indexOf({
-              description : "a",
-              name : "b"
-            }));
-            assert.equal(-3, index.indexOf({
-              description : "a",
-              name : "c"
-            }));
-           });
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.ok(index.row(1).modified == null);
+              assert.equal(2, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.equal(-4, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+            });
+            it('index.add to add duplicate key next to existing row', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "description", "name" ]);
+              // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
+              assert.equal(10, index.indexOf({
+                description : "x",
+                name : "z"
+              }));
+              assert.equal(-1, index.indexOf({
+                description : "A",
+                name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.ok(index.row(1).modified != null);
+              assert.equal(-3, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+              index.add({
+                description : "a",
+                name : "b",
+                modified : null
+              });
+              assert.equal(-1, index.indexOf({
+                description : "A",
+                name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              var idx_ab =index.indexOf({
+                description : "a",
+                name : "b"
+              });
+              assert.ok(idx_ab == 1 || idx_ab == 2 );
+              assert.ok(index.row(1).description == "a");
+              assert.ok(index.row(2).description == "a");
+              assert.ok(index.row(1).name == "b");
+              assert.ok(index.row(2).name == "b");
+              assert.equal(-4, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+            });
+            it('index.add that creates new uniqe row', function() {
+              var table = descriptionTable();
+              var index = new $_.Index(table, [ "description", "name" ]);
+              // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
+              assert.equal(10, index.indexOf({
+                description : "x",
+                name : "z"
+              }));
+              assert.equal(-1, index.indexOf({
+                description : "A",
+                name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(-2, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.equal(-3, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+              index.add({
+                description : "a",
+                name : "aa",
+                modified : null
+              });
+              assert.equal(-1, index.indexOf({
+                description : "A",
+                name : "A"
+              }));
+              assert.equal(0, index.indexOf({
+                description : "a",
+                name : "a"
+              }));
+              assert.equal(1, index.indexOf({
+                description : "a",
+                name : "aa"
+              }));
+              assert.ok(index.row(1).modified == null);
+              assert.equal(2, index.indexOf({
+                description : "a",
+                name : "b"
+              }));
+              assert.equal(-4, index.indexOf({
+                description : "a",
+                name : "c"
+              }));
+            });
           });
       describe(
           '#Table',
@@ -488,12 +659,15 @@ describe(
             it('set', function() {
               var table = descriptionTable();
               var row = table.row(0);
-              assert.equal(row.name,"a");
-              assert.equal(row.description,"a");
+              assert.equal(row.name, "a");
+              assert.equal(row.description, "a");
               assert.ok(row.modified !== null);
-              table.set(0,{name: "q",modified: null});
-              assert.equal(row.name,"q");
-              assert.equal(row.description,"a");
+              table.set(0, {
+                name : "q",
+                modified : null
+              });
+              assert.equal(row.name, "q");
+              assert.equal(row.description, "a");
               assert.ok(row.modified === null);
             });
             it('sort Table', function() {
@@ -549,10 +723,14 @@ describe(
               // pass keys as arguments
               var compareDateDescriptionValues = table.makeCompare("^modified",
                   "description").compareValues;
-              assert.equal(compareDateDescriptionValues(table.row(0), table.row(1)) < 0, true);
-              assert.equal(compareDateDescriptionValues(table.row(1), table.row(0)) > 0, true);
-              assert.equal(compareDateDescriptionValues(table.row(1), table.row(1)) === 0, true);
-              assert.equal(compareDateDescriptionValues(table.row(0), table.row(0)) === 0, true);
+              assert.equal(compareDateDescriptionValues(table.row(0), table
+                  .row(1)) < 0, true);
+              assert.equal(compareDateDescriptionValues(table.row(1), table
+                  .row(0)) > 0, true);
+              assert.equal(compareDateDescriptionValues(table.row(1), table
+                  .row(1)) === 0, true);
+              assert.equal(compareDateDescriptionValues(table.row(0), table
+                  .row(0)) === 0, true);
 
             });
           });
