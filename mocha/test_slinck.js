@@ -1,6 +1,13 @@
 var assert = require("assert");
 var $_ = require("../app/slinck");
 
+function testArrays(expected, actual) {
+  assert.equal(expected.length, actual.length);
+  for ( var i = 0; i < expected.length; i++) {
+    assert.equal(expected[i], actual[i]);
+  }
+}
+
 describe('pecent_encoding', function() {
   describe('#decode', function() {
     function scenario1(p, encoded) {
@@ -525,66 +532,67 @@ describe(
                 name : "c"
               }));
             });
-            it('index.add to add duplicate key next to existing row', function() {
-              var table = descriptionTable();
-              var index = new $_.Index(table, [ "description", "name" ]);
-              // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
-              assert.equal(10, index.indexOf({
-                description : "x",
-                name : "z"
-              }));
-              assert.equal(-1, index.indexOf({
-                description : "A",
-                name : "A"
-              }));
-              assert.equal(0, index.indexOf({
-                description : "a",
-                name : "a"
-              }));
-              assert.equal(-2, index.indexOf({
-                description : "a",
-                name : "aa"
-              }));
-              assert.equal(1, index.indexOf({
-                description : "a",
-                name : "b"
-              }));
-              assert.ok(index.row(1).modified != null);
-              assert.equal(-3, index.indexOf({
-                description : "a",
-                name : "c"
-              }));
-              index.add({
-                description : "a",
-                name : "b",
-                modified : null
-              });
-              assert.equal(-1, index.indexOf({
-                description : "A",
-                name : "A"
-              }));
-              assert.equal(0, index.indexOf({
-                description : "a",
-                name : "a"
-              }));
-              assert.equal(-2, index.indexOf({
-                description : "a",
-                name : "aa"
-              }));
-              var idx_ab =index.indexOf({
-                description : "a",
-                name : "b"
-              });
-              assert.ok(idx_ab == 1 || idx_ab == 2 );
-              assert.ok(index.row(1).description == "a");
-              assert.ok(index.row(2).description == "a");
-              assert.ok(index.row(1).name == "b");
-              assert.ok(index.row(2).name == "b");
-              assert.equal(-4, index.indexOf({
-                description : "a",
-                name : "c"
-              }));
-            });
+            it('index.add to add duplicate key next to existing row',
+                function() {
+                  var table = descriptionTable();
+                  var index = new $_.Index(table, [ "description", "name" ]);
+                  // "[0,3,7,11,1,5,4,6,2,8,12,9,10]");
+                  assert.equal(10, index.indexOf({
+                    description : "x",
+                    name : "z"
+                  }));
+                  assert.equal(-1, index.indexOf({
+                    description : "A",
+                    name : "A"
+                  }));
+                  assert.equal(0, index.indexOf({
+                    description : "a",
+                    name : "a"
+                  }));
+                  assert.equal(-2, index.indexOf({
+                    description : "a",
+                    name : "aa"
+                  }));
+                  assert.equal(1, index.indexOf({
+                    description : "a",
+                    name : "b"
+                  }));
+                  assert.ok(index.row(1).modified != null);
+                  assert.equal(-3, index.indexOf({
+                    description : "a",
+                    name : "c"
+                  }));
+                  index.add({
+                    description : "a",
+                    name : "b",
+                    modified : null
+                  });
+                  assert.equal(-1, index.indexOf({
+                    description : "A",
+                    name : "A"
+                  }));
+                  assert.equal(0, index.indexOf({
+                    description : "a",
+                    name : "a"
+                  }));
+                  assert.equal(-2, index.indexOf({
+                    description : "a",
+                    name : "aa"
+                  }));
+                  var idx_ab = index.indexOf({
+                    description : "a",
+                    name : "b"
+                  });
+                  assert.ok(idx_ab == 1 || idx_ab == 2);
+                  assert.ok(index.row(1).description == "a");
+                  assert.ok(index.row(2).description == "a");
+                  assert.ok(index.row(1).name == "b");
+                  assert.ok(index.row(2).name == "b");
+                  assert.equal(-4, index.indexOf({
+                    description : "a",
+                    name : "c"
+                  }));
+                });
             it('index.add that creates new uniqe row', function() {
               var table = descriptionTable();
               var index = new $_.Index(table, [ "description", "name" ]);
@@ -751,6 +759,34 @@ describe(
                 });
           });
       describe(
+          '#XmlNode',
+          function() {
+            it(
+                'table with 2 row',
+                function() {
+                  var table = new $_.XmlNode("table");
+                  var tbody = table.child("tbody");
+                  tbody.addText("abc");
+                  var trs = tbody.child([ "tr", "tr", "tr" ]);
+                  trs[0].attr("class", "even");
+                  trs[1].attr({
+                    class : "odd",
+                    style : "height: 20px;"
+                  });
+                  trs.forEach(function(x) {
+                    x.child([ "td", "td", "td" ]);
+                  });
+                  assert
+                      .equal(
+                          "<table><tbody>"
+                              + "abc"
+                              + "<tr class=\"even\"><td /><td /><td /></tr>"
+                              + "<tr class=\"odd\" style=\"height: 20px;\"><td /><td /><td /></tr>"
+                              + "<tr><td /><td /><td /></tr>"
+                              + "</tbody></table>", table.toString());
+                });
+          });
+      describe(
           '#Column.Type',
           function() {
             it('compare boolean', function() {
@@ -814,174 +850,203 @@ describe(
           });
     });
 
-describe('utils', function() {
-  describe('#assert', function() {
-    it('check assert success and failure', function() {
-      $_.utils.assert("aa", "aa");
-      $_.utils.assert("aa", [ "qq", "aa" ]);
-      try {
-        $_.utils.assert("aa", "bb");
-      } catch (x) {
-        assert.equal(x.message,
-            "Unexpected entry: aa  expected:'bb', provided:'aa'");
-        assert.equal(x.params.expected, "bb");
-        assert.equal(x.params.provided, "aa");
-      }
-      var arr = [ "cc", "bb" ];
-      try {
-        $_.utils.assert("aa", arr);
-      } catch (x) {
-        assert.equal(x.message,
-            "Unexpected entry: aa  expected:['cc','bb'], provided:'aa'");
-        assert.equal(x.params.expected, arr);
-        assert.equal(x.params.provided, "aa");
-      }
-      try {
-        $_.utils.assert("aa", "bb", "haha");
-      } catch (x) {
-        assert.equal(x.message, "haha  expected:'bb', provided:'aa'");
-        assert.equal(x.params.expected, "bb");
-        assert.equal(x.params.provided, "aa");
-      }
-    });
-  });
-  describe('#applyOnAll', function() {
-    it('make sure that it apply on all object own properties', function() {
-      $_.utils.applyOnAll({
-        a : "b",
-        b : "c"
-      }, function(v, k, obj) {
-        assert.ok(obj instanceof Object);
-        if (k === "a") {
-          assert.equal(v, "b");
-        } else if (k === "b") {
-          assert.equal(v, "c");
-        } else {
-          assert.ok(false, "What the hell is:" + k);
-        }
+describe(
+    'utils',
+    function() {
+      describe('#assert', function() {
+        it('check assert success and failure', function() {
+          $_.utils.assert("aa", "aa");
+          $_.utils.assert("aa", [ "qq", "aa" ]);
+          try {
+            $_.utils.assert("aa", "bb");
+          } catch (x) {
+            assert.equal(x.message,
+                "Unexpected entry: aa  expected:'bb', provided:'aa'");
+            assert.equal(x.params.expected, "bb");
+            assert.equal(x.params.provided, "aa");
+          }
+          var arr = [ "cc", "bb" ];
+          try {
+            $_.utils.assert("aa", arr);
+          } catch (x) {
+            assert.equal(x.message,
+                "Unexpected entry: aa  expected:['cc','bb'], provided:'aa'");
+            assert.equal(x.params.expected, arr);
+            assert.equal(x.params.provided, "aa");
+          }
+          try {
+            $_.utils.assert("aa", "bb", "haha");
+          } catch (x) {
+            assert.equal(x.message, "haha  expected:'bb', provided:'aa'");
+            assert.equal(x.params.expected, "bb");
+            assert.equal(x.params.provided, "aa");
+          }
+        });
       });
-    });
-  });
-  describe('#Tokenizer', function() {
-    it('check Tokenizer functionality', function() {
-      var tt = $_.utils.Tokenizer("a/b/c//dd/x/v/l", "/?&=");
-      assert.equal(tt.nextDelimiter(), "");
-      assert.equal(tt.nextValue(), "a");
-      assert.equal(tt.nextDelimiter(), "/");
-      assert.equal(tt.nextValue(), "b");
-      assert.equal(tt.nextDelimiter(), "/");
-      assert.equal(tt.nextValue(), "c");
-      assert.equal(tt.nextDelimiter(), "//");
-      assert.equal(tt.nextValue(), "dd");
-      assert.equal(tt.nextDelimiter(), "/");
-      assert.equal(tt.nextValue(), "x");
-      assert.equal(tt.nextDelimiter(), "/");
-      assert.equal(tt.nextDelimiter(), "");
-      assert.equal(tt.nextValue(), "v");
-      assert.equal(tt.nextDelimiter(), "/");
-      assert.equal(tt.nextValue(), "l");
-      assert.equal(tt.nextValue(), "");
-      assert.equal(tt.nextDelimiter(), "");
-    });
-  });
-  describe('#isArray()', function() {
-    it('', function() {
-      assert.ok($_.utils.isArray([ 1, 2, 3 ]));
-      assert.ok(!$_.utils.isArray(1));
-      assert.ok(!$_.utils.isArray(function() {
-      }));
-    });
-  });
-  describe('#append()', function() {
-    it('', function() {
-      var x = {
-        a : "a",
-        b : "b"
-      };
-      $_.utils.append(x, {
-        b : "b2",
-        c : "c"
+      describe('#applyOnAll', function() {
+        it('make sure that it apply on all object own properties', function() {
+          $_.utils.applyOnAll({
+            a : "b",
+            b : "c"
+          }, function(v, k, obj) {
+            assert.ok(obj instanceof Object);
+            if (k === "a") {
+              assert.equal(v, "b");
+            } else if (k === "b") {
+              assert.equal(v, "c");
+            } else {
+              assert.ok(false, "What the hell is:" + k);
+            }
+          });
+        });
       });
-      assert.equal(x.a, "a");
-      assert.equal(x.b, "b2");
-      assert.equal(x.c, "c");
-    });
-  });
-  describe('#size()', function() {
-    it('', function() {
-      assert.equal($_.utils.size({}), 0);
-      assert.equal($_.utils.size({
-        a : "a",
-        b : "b"
-      }), 2);
-      assert.equal($_.utils.size({
-        a : "a"
-      }), 1);
-    });
-  });
-  describe('#join()', function() {
-    it('', function() {
-      assert.equal($_.utils.join([ 1, 2, 3 ]), "1,2,3");
-      assert.equal($_.utils.join([ 1, 2, 3 ], function(array, i, j) {
-        return i === -1 ? "[" : j === 0 ? "]" : ",";
-      }), "[1,2,3]");
-    });
-  });
-  describe('#isString()', function() {
-    it('', function() {
-      assert.equal($_.utils.isString("abc"), true);
-      assert.equal($_.utils.isString(new String("abc")), true);
-      assert.equal($_.utils.isString(5), false);
-      assert.equal($_.utils.isString([]), false);
-    });
-  });
-  describe('#stringify()', function() {
-    it('', function() {
-      assert.equal($_.utils.stringify("abc"), "'abc'");
-      assert.equal($_.utils.stringify(new String("abc")), "'abc'");
-      assert.equal($_.utils.stringify(5), "5");
-      assert.equal($_.utils.stringify([]), "[]");
-      assert.equal($_.utils.stringify([ 3, 'a', [ true, [] ] ]),
-          "[3,'a',[true,[]]]");
-    });
-  });
-  describe('#error()', function() {
-    it('', function() {
-      var e = $_.utils.error({
-        message : "msg",
-        a : "a",
-        b : "not b"
+      describe(
+          '#escapeXmlBody',
+          function() {
+            it(
+                'make sure that xml attribute escaped properly',
+                function() {
+                  assert
+                      .equal(
+                          "&lt;body&gt;&amp;aaa; single quote = ' &amp; double quote = \" &lt;/body&gt;",
+                          $_.utils
+                              .escapeXmlBody("<body>&aaa; single quote = ' & double quote = \" </body>"));
+                });
+          });
+      describe(
+          '#escapeXmlAttribute',
+          function() {
+            it(
+                'make sure that xml attribute escaped properly',
+                function() {
+                  assert
+                      .equal(
+                          "&lt;body&gt;&amp;aaa; single quote = &#39; &amp; double quote = &quot; &lt;/body&gt;",
+                          $_.utils
+                              .escapeXmlAttribute("<body>&aaa; single quote = ' & double quote = \" </body>"));
+                });
+          });
+      describe('#Tokenizer', function() {
+        it('check Tokenizer functionality', function() {
+          var tt = $_.utils.Tokenizer("a/b/c//dd/x/v/l", "/?&=");
+          assert.equal(tt.nextDelimiter(), "");
+          assert.equal(tt.nextValue(), "a");
+          assert.equal(tt.nextDelimiter(), "/");
+          assert.equal(tt.nextValue(), "b");
+          assert.equal(tt.nextDelimiter(), "/");
+          assert.equal(tt.nextValue(), "c");
+          assert.equal(tt.nextDelimiter(), "//");
+          assert.equal(tt.nextValue(), "dd");
+          assert.equal(tt.nextDelimiter(), "/");
+          assert.equal(tt.nextValue(), "x");
+          assert.equal(tt.nextDelimiter(), "/");
+          assert.equal(tt.nextDelimiter(), "");
+          assert.equal(tt.nextValue(), "v");
+          assert.equal(tt.nextDelimiter(), "/");
+          assert.equal(tt.nextValue(), "l");
+          assert.equal(tt.nextValue(), "");
+          assert.equal(tt.nextDelimiter(), "");
+        });
       });
-      assert.ok(e instanceof Error);
-      assert.equal(e.message, "msg  a:'a', b:'not b'");
-      $_.utils.error({
-        b : "b",
-        c : "c"
-      }, e);
-      assert.ok(e instanceof Error);
-      assert.equal(e.message, "msg  a:'a', b:'b', c:'c'");
-      assert.equal(e.stack.split(/\n/)[0], "Error: msg  a:'a', b:'b', c:'c'");
-    });
-  });
-  describe('#padWith()', function() {
-    it('', function() {
-      assert.equal($_.utils.padWith(5, '00'), '05');
-      assert.equal($_.utils.padWith(345, '00'), '45');
-      assert.equal($_.utils.padWith(35, '00'), '35');
-      assert.equal($_.utils.padWith(685, '0000'), '0685');
-    });
-  });
-  describe('#dateToIsoString()', function() {
-    it('', function() {
-      var isoDate = $_.utils.dateToIsoString(new Date(Date.UTC(1980, 0, 1)));
-      assert.equal(isoDate, '1980-01-01T00:00:00.0000Z');
-      assert.equal($_.utils.dateToIsoString(new Date(isoDate)),
-          '1980-01-01T00:00:00.0000Z');
-    });
-  });
-  describe('#binarySearch()', function() {
-    it('found',
-        function() {
+      describe('#isArray()', function() {
+        it('', function() {
+          assert.ok($_.utils.isArray([ 1, 2, 3 ]));
+          assert.ok(!$_.utils.isArray(1));
+          assert.ok(!$_.utils.isArray(function() {
+          }));
+        });
+      });
+      describe('#append()', function() {
+        it('', function() {
+          var x = {
+            a : "a",
+            b : "b"
+          };
+          $_.utils.append(x, {
+            b : "b2",
+            c : "c"
+          });
+          assert.equal(x.a, "a");
+          assert.equal(x.b, "b2");
+          assert.equal(x.c, "c");
+        });
+      });
+      describe('#size()', function() {
+        it('', function() {
+          assert.equal($_.utils.size({}), 0);
+          assert.equal($_.utils.size({
+            a : "a",
+            b : "b"
+          }), 2);
+          assert.equal($_.utils.size({
+            a : "a"
+          }), 1);
+        });
+      });
+      describe('#join()', function() {
+        it('', function() {
+          assert.equal($_.utils.join([ 1, 2, 3 ]), "1,2,3");
+          assert.equal($_.utils.join([ 1, 2, 3 ], function(array, i, j) {
+            return i === -1 ? "[" : j === 0 ? "]" : ",";
+          }), "[1,2,3]");
+        });
+      });
+      describe('#isString()', function() {
+        it('', function() {
+          assert.equal($_.utils.isString("abc"), true);
+          assert.equal($_.utils.isString(new String("abc")), true);
+          assert.equal($_.utils.isString(5), false);
+          assert.equal($_.utils.isString([]), false);
+        });
+      });
+      describe('#stringify()', function() {
+        it('', function() {
+          assert.equal($_.utils.stringify("abc"), "'abc'");
+          assert.equal($_.utils.stringify(new String("abc")), "'abc'");
+          assert.equal($_.utils.stringify(5), "5");
+          assert.equal($_.utils.stringify([]), "[]");
+          assert.equal($_.utils.stringify([ 3, 'a', [ true, [] ] ]),
+              "[3,'a',[true,[]]]");
+        });
+      });
+      describe('#error()', function() {
+        it('', function() {
+          var e = $_.utils.error({
+            message : "msg",
+            a : "a",
+            b : "not b"
+          });
+          assert.ok(e instanceof Error);
+          assert.equal(e.message, "msg  a:'a', b:'not b'");
+          $_.utils.error({
+            b : "b",
+            c : "c"
+          }, e);
+          assert.ok(e instanceof Error);
+          assert.equal(e.message, "msg  a:'a', b:'b', c:'c'");
+          assert.equal(e.stack.split(/\n/)[0],
+              "Error: msg  a:'a', b:'b', c:'c'");
+        });
+      });
+      describe('#padWith()', function() {
+        it('', function() {
+          assert.equal($_.utils.padWith(5, '00'), '05');
+          assert.equal($_.utils.padWith(345, '00'), '45');
+          assert.equal($_.utils.padWith(35, '00'), '35');
+          assert.equal($_.utils.padWith(685, '0000'), '0685');
+        });
+      });
+      describe('#dateToIsoString()', function() {
+        it('', function() {
+          var isoDate = $_.utils
+              .dateToIsoString(new Date(Date.UTC(1980, 0, 1)));
+          assert.equal(isoDate, '1980-01-01T00:00:00.0000Z');
+          assert.equal($_.utils.dateToIsoString(new Date(isoDate)),
+              '1980-01-01T00:00:00.0000Z');
+        });
+      });
+      describe('#binarySearch()', function() {
+        it('found', function() {
           var array = [ 1, 2, 4, 6, 8, 10, 25 ];
           function test(value, position) {
             var found = $_.utils.binarySearch(value, array,
@@ -1013,5 +1078,23 @@ describe('utils', function() {
           test(24, -6);
           test(26, -7);
         });
-  });
-});
+      });
+      describe('#sequence()', function() {
+        it('ints', function() {
+          testArrays([ 0, 1, 2, 3 ], $_.utils.sequence(4));
+          testArrays([ 1, 2, 3, 4 ], $_.utils.sequence(4, 1));
+        });
+      });
+      describe('#sequence()', function() {
+        it('strings', function() {
+          testArrays([ "s0", "s1", "s2", "s3" ], $_.utils.sequence(4, "s"));
+        });
+      });
+      describe('#sequence()', function() {
+        it('function', function() {
+          testArrays([ 0, 1, 4, 9 ], $_.utils.sequence(4, function(i) {
+            return i * i
+          }));
+        });
+      });
+    });

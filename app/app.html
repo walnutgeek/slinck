@@ -3,7 +3,7 @@
 </head>
 
 <body>
-  {{> hello}}
+  {{> table}}
 </body>
 
 <template name="hello">
@@ -15,13 +15,20 @@
 <template name="table">
   <table>
 	  <thead>
-	  
+	    {{#each tview.columns}}
+	    <th>
+	      	{{name}}
+	    </th>
+		{{/each}}
 	  </thead>
-	  <tfoot>
-	  </tfoot>
 	  <tbody>
-	  	
+	    {{#each tview.data}}
+			<tr>
+			{{#each t}} 
+			<td>{{.}}</td>
+	    	{{/each}}
+			</tr>
+	    {{/each}}
 	  </tbody>
-  {{greeting}}
   </table>
 </template>

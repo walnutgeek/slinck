@@ -103,13 +103,13 @@
     }
 
     function join(array, delimiter, toString) {
-      var s = '';
+      var keys = isObject(array) ? Object.keys(array) : array;
       if (!toString) {
         toString = function(s) {
           return s;
         };
       }
-      if (!delimiter) {
+      if (delimiter === undefined ) {
         delimiter = ',';
       }
       var doDelimit = (typeof delimiter === 'function') ? delimiter : function(
@@ -117,17 +117,18 @@
         return (positionFromBegining < 0 || positionFromEnd <= 0) ? ''
             : delimiter;
       };
+      var result = '';
       var positionFromBegining = -1;
-      var positionFromEnd = array.length;
-      while (positionFromBegining < array.length) {
+      var positionFromEnd = keys.length;
+      while (positionFromBegining < keys.length) {
         if (positionFromBegining >= 0) {
-          s += toString(array[positionFromBegining]);
+          result += toString(keys[positionFromBegining], array);
         }
-        s += doDelimit(array, positionFromBegining, positionFromEnd);
+        result += doDelimit(keys, positionFromBegining, positionFromEnd, array);
         positionFromBegining++;
         positionFromEnd--;
       }
-      return s;
+      return result;
     }
 
     function stringify(x) {
@@ -248,6 +249,16 @@
       return -1 - min;
     }
 
+    function sequence(count, offset) {
+      var result = [];
+      for ( var i = 0; i < count; i++) {
+        var content = isNumber(offset) || isString(offset) ? offset + i
+            : isFunction(offset) ? offset(i) : i;
+        result.push(content);
+      }
+      return result;
+    }
+
     function Tokenizer(s, delimiters) {
       var i = 0;
 
@@ -286,11 +297,48 @@
         }
       };
     }
+
+    var mappingEntities = {
+      "<" : "&lt;",
+      ">" : "&gt;",
+      "&" : "&amp;",
+      '"' : "&quot;",
+      "'" : "&#39;",
+    };
+
+    function escapeEntities(s, delims) {
+      var t = new Tokenizer(s, delims);
+      var r = "";
+      for (;;) {
+        var v = t.nextValue();
+        var d = t.nextDelimiter();
+        if (v) {
+          r += v;
+        }
+        if (d) {
+          for ( var i = 0; i < d.length; i++) {
+            r += mappingEntities[d.charAt(i)];
+          }
+        }
+        if (!v && !d) {
+          return r;
+        }
+      }
+    }
+
+    function escapeXmlAttribute(s) {
+      return escapeEntities(s, "<>&'\"");
+    }
+
+    function escapeXmlBody(s) {
+      return escapeEntities(s, "<>&");
+    }
+
     return convertListToObject([ convertListToObject, isArray, append, size,
         join, error, applyOnAll, assert, Tokenizer, stringify, padWith,
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
-        extractArray, binarySearch ]);
+        extractArray, binarySearch, sequence, escapeXmlAttribute, escapeXmlBody ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -984,6 +1032,9 @@
           });
         }
       },
+      getRowCount : function() {
+        return data.length;
+      },
       makeCompare : function() {
         var keys = $_.utils.extractArray(arguments);
         var compares = [];
@@ -1091,8 +1142,88 @@
 
     /** /Index */
 
+    /** XmlNode */
+    function XmlNode(name, text) {
+      $_.utils.assert(this instanceof XmlNode, true,
+          "please use 'new', when calling this function");
+      this.name = name;
+      this.text = text;
+      this.children = [];
+      this.attributes = {};
+    }
+    $_.utils.append(XmlNode.prototype, {
+      attr : function(k, v) {
+        if (!this.text) {
+          if ($_.utils.isString(k) && k) {
+            this.attributes[k] = v;
+            return this;
+          } else if ($_.utils.isObject(k)) {
+            $_.utils.append(this.attributes, k);
+            return this;
+          }
+        }
+        throw $_.util.error({
+          message : "Cannot recognize attribute",
+          text : this.text,
+          k : k
+        });
+      },
+      addText : function(t) {
+        this.child(t, true);
+        return this;
+      },
+      child : function(childName, text) {
+        if (this.text) {
+          throw $_.util.error({
+            message : "Cannot add child to text nodes",
+            text : this.name
+          });
+        }
+        if ($_.utils.isString(childName)) {
+          var child = new XmlNode(childName, text);
+          this.children.push(child);
+          return child;
+        } else if ($_.utils.isArray(childName)) {
+          var results = [];
+          for ( var i = 0; i < childName.length; i++) {
+            results.push(this.child(childName[i]));
+          }
+          return results;
+        }
+        throw $_.util.error({
+          message : "Cannot detect childName/childNames",
+          text : this.text,
+          childName : childName
+        });
+      },
+      toString : function() {
+        if (this.text) {
+          return $_.utils.escapeXmlBody(this.name);
+        }
+        var s = "<" + this.name;
+        if (this.attributes) {
+          s += $_.utils.join(this.attributes, "",
+              function(k, map) {
+                return " " + k + "=\"" + $_.utils.escapeXmlAttribute(map[k])
+                    + "\"";
+              });
+        }
+        if (this.children && this.children.length) {
+          s += ">";
+          for ( var i = 0; i < this.children.length; i++) {
+            s += this.children[i].toString();
+          }
+          s += "</" + this.name + ">";
+        } else {
+          s += " />";
+        }
+        return s;
+      }
+    });
+    /** /XmlNode */
+
     return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
-        Type, ColumnRole, Index ]);
+        Type, ColumnRole, Index, XmlNode ]);
   })());
 
 })();
