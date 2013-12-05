@@ -77,15 +77,7 @@ if (Meteor.isClient) {
   // };
 
   var d = descriptionTable();
-  Template.table.tview = {
-    columns : d.columns,
-    rowIndexes : $_.utils.sequence(d.data.length),
-    getValue : function(row, col) {
-      var colName = $_.utils.isNumber(col) ? d.columns[col].name
-          : col instanceof $_.Table.Column ? col.name : col;
-      return d.row(row)[colName];
-    }
-  };
+  Template.table.tview = new $_.TableView(d)
 
   /*
    * Template.hello.events({ 'click input' : function () { // template data, if

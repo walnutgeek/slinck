@@ -109,7 +109,7 @@
           return s;
         };
       }
-      if (delimiter === undefined ) {
+      if (delimiter == null) {
         delimiter = ',';
       }
       var doDelimit = (typeof delimiter === 'function') ? delimiter : function(
@@ -249,14 +249,19 @@
       return -1 - min;
     }
 
-    function sequence(count, offset) {
+    function repeat(count, value) {
       var result = [];
       for ( var i = 0; i < count; i++) {
-        var content = isNumber(offset) || isString(offset) ? offset + i
-            : isFunction(offset) ? offset(i) : i;
-        result.push(content);
+        result.push(isFunction(value) ? value(i) : value);
       }
       return result;
+    }
+
+    function sequence(count, offset) {
+      return repeat(count, function(i) {
+        return isNumber(offset) || isString(offset) ? offset + i
+            : isFunction(offset) ? offset(i) : i;
+      });
     }
 
     function Tokenizer(s, delimiters) {
@@ -338,7 +343,8 @@
         join, error, applyOnAll, assert, Tokenizer, stringify, padWith,
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
-        extractArray, binarySearch, sequence, escapeXmlAttribute, escapeXmlBody ]);
+        extractArray, binarySearch, repeat, sequence, escapeXmlAttribute,
+        escapeXmlBody ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -981,7 +987,12 @@
     }
 
     $_.utils.append(Table.prototype, {
-      rows : function() {
+      rowCount: function() {
+        return this.data.length;
+      },
+      header: function(){
+        return this.columns;
+      },rows : function() {
         var rowIds = $_.utils.extractArray(arguments);
         if (!rowIds || rowIds.length === 0) {
           return null;
@@ -1106,6 +1117,12 @@
     }
 
     $_.utils.append(Index.prototype, {
+      rowCount: function() {
+        return table.rowCount();
+      },
+      header: function(){
+        return table.columns;
+      },
       indexOf : function(searchFor) {
         var self = this;
         function mapper(mappee) {
@@ -1153,18 +1170,21 @@
     }
     $_.utils.append(XmlNode.prototype, {
       attr : function(k, v) {
-        if (!this.text) {
-          if ($_.utils.isString(k) && k) {
-            this.attributes[k] = v;
-            return this;
-          } else if ($_.utils.isObject(k)) {
-            $_.utils.append(this.attributes, k);
-            return this;
-          }
+        if (this.text) {
+          throw $_.utils.error({
+            message : "Cannot add attributes to text nodes",
+            text : this.name
+          });
         }
-        throw $_.util.error({
+        if ($_.utils.isString(k) && k) {
+          this.attributes[k] = v;
+          return this;
+        } else if ($_.utils.isObject(k)) {
+          $_.utils.append(this.attributes, k);
+          return this;
+        }
+        throw $_.utils.error({
           message : "Cannot recognize attribute",
-          text : this.text,
           k : k
         });
       },
@@ -1174,25 +1194,24 @@
       },
       child : function(childName, text) {
         if (this.text) {
-          throw $_.util.error({
+          throw $_.utils.error({
             message : "Cannot add child to text nodes",
             text : this.name
           });
         }
-        if ($_.utils.isString(childName)) {
-          var child = new XmlNode(childName, text);
-          this.children.push(child);
-          return child;
-        } else if ($_.utils.isArray(childName)) {
+        if ($_.utils.isArray(childName)) {
           var results = [];
           for ( var i = 0; i < childName.length; i++) {
             results.push(this.child(childName[i]));
           }
           return results;
-        }
-        throw $_.util.error({
-          message : "Cannot detect childName/childNames",
-          text : this.text,
+        }else if ($_.utils.isString(childName)) {
+            var child = new XmlNode(childName, text);
+            this.children.push(child);
+            return child;
+        }  
+        throw $_.utils.error({
+          message : "Cannot detect " + text ? "text" : "childName/childNames",
           childName : childName
         });
       },
@@ -1222,8 +1241,47 @@
     });
     /** /XmlNode */
 
+    function TableView(data, format, columnNames) {
+      $_.utils.assert(this instanceof TableView, true,
+          "please use 'new', when calling this function");
+      this.toHtml = function() {
+        var formatter = $_.utils.isFunction(format) ? format : function( val, col, idx, row){
+           return $_.utils.ensureString(val);
+        }; 
+        var table = new XmlNode("table");
+        var thead = table.child("thead");
+        if(!columnNames) columnNames=data.header().map(function(col){return col.name;});
+        thead.child("tr").child($_.utils.repeat(columnNames.length, "th"))
+            .forEach(function(th, i) {
+              th.addText(columnNames[i]);
+            });
+        var columns = data.header()
+        var tbody = table.child("tbody");
+        for ( var rowIdx = 0; rowIdx < data.rowCount(); rowIdx++) {
+          var tr = tbody.child("tr");
+          var rowData = data.row(rowIdx);
+          for ( var colIdx = 0; colIdx < columnNames.length; colIdx++) {
+            var td = tr.child("td");
+            var colName = columnNames[colIdx];
+            td.addText(formatter(rowData[colName],columns.hash[colName],colIdx,rowData));
+          }
+        }
+        return table.toString();
+      };
+      return this;
+//      return {
+//        columns : table.columns,
+//        rowIndexes : $_.utils.sequence(d.data.length),
+//        getValue : function(row, col) {
+//          var colName = $_.utils.isNumber(col) ? d.columns[col].name
+//              : col instanceof $_.Table.Column ? col.name : col;
+//          return d.row(row)[colName];
+//        }
+//      };
+    }
+    
     return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
-        Type, ColumnRole, Index, XmlNode ]);
+        Type, ColumnRole, Index, XmlNode, TableView ]);
   })());
 
 })();

@@ -13,22 +13,5 @@
 </template>
 
 <template name="table">
-  <table>
-	  <thead>
-	    {{#each tview.columns}}
-	    <th>
-	      	{{name}}
-	    </th>
-		{{/each}}
-	  </thead>
-	  <tbody>
-	    {{#each tview.data}}
-			<tr>
-			{{#each t}} 
-			<td>{{.}}</td>
-	    	{{/each}}
-			</tr>
-	    {{/each}}
-	  </tbody>
-  </table>
+  {{{tview.toHtml}}}
 </template>

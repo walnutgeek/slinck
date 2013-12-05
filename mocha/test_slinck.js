@@ -743,6 +743,26 @@ describe(
             });
           });
       describe(
+          '#TableView',
+          function() {
+            it(
+                'check if it will throw exception without new',
+                function() {
+                  try {
+                    $_.TableView();
+                    assert.ok(false);
+                  } catch (e) {
+                    assert
+                        .equal(e.message,
+                            "please use 'new', when calling this function  expected:true, provided:false");
+                  }
+                });
+            it('set', function() {
+              var table = descriptionTable();
+              assert.equal("<table><thead><tr><th>name</th><th>description</th></tr></thead><tbody><tr><td>a</td><td>a</td></tr><tr><td>a</td><td>b</td></tr><tr><td>a</td><td>t</td></tr><tr><td>b</td><td>a</td></tr><tr><td>b</td><td>m</td></tr><tr><td>c</td><td>l</td></tr><tr><td>c</td><td>q</td></tr><tr><td>x</td><td>a</td></tr><tr><td>x</td><td>x</td></tr><tr><td>x</td><td>y</td></tr><tr><td>x</td><td>z</td></tr><tr><td>z</td><td>a</td></tr><tr><td>z</td><td>x</td></tr></tbody></table>",new $_.TableView(table,null,['name','description']).toHtml());
+            });
+          });
+      describe(
           '#Column',
           function() {
             it(
@@ -984,11 +1004,24 @@ describe(
         });
       });
       describe('#join()', function() {
-        it('', function() {
+        it('join array', function() {
           assert.equal($_.utils.join([ 1, 2, 3 ]), "1,2,3");
           assert.equal($_.utils.join([ 1, 2, 3 ], function(array, i, j) {
             return i === -1 ? "[" : j === 0 ? "]" : ",";
           }), "[1,2,3]");
+        });
+        it('join map', function() {
+          var m = { a: 1, b: 2, c: 3 };
+          assert.equal($_.utils.join(m, "", function(k,m){return m[k];}), "123");
+          assert.equal($_.utils.join(m, null,function(k,m){return m[k];}), "1,2,3");
+          assert.equal($_.utils.join(m, undefined,function(k,m){return m[k];}), "1,2,3");
+          assert.equal($_.utils.join(m), "a,b,c");
+          assert.equal($_.utils.join(m, function(array, i, j) {
+            return i === -1 ? "[" : j === 0 ? "]" : ",";
+          }), "[a,b,c]");
+          assert.equal($_.utils.join(m, function(array, i, j) {
+            return i === -1 ? "[" : j === 0 ? "]" : ",";
+          },function(k,m){return m[k];}), "[1,2,3]");
         });
       });
       describe('#isString()', function() {
@@ -1077,6 +1110,12 @@ describe(
           test(9, -6);
           test(24, -6);
           test(26, -7);
+        });
+      });
+      describe('#repeat()', function() {
+        it('ints', function() {
+          testArrays([ 0, 0, 0, 0 ], $_.utils.repeat(4, 0));
+          testArrays([ 1, 1, 1, 1 ], $_.utils.repeat(4, 1));
         });
       });
       describe('#sequence()', function() {
