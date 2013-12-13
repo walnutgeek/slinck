@@ -757,10 +757,51 @@ describe(
                             "please use 'new', when calling this function  expected:true, provided:false");
                   }
                 });
-            it('set', function() {
+            it('#toHtml with specified columns', function() {
               var table = descriptionTable();
-              assert.equal("<table><thead><tr><th>name</th><th>description</th></tr></thead><tbody><tr><td>a</td><td>a</td></tr><tr><td>a</td><td>b</td></tr><tr><td>a</td><td>t</td></tr><tr><td>b</td><td>a</td></tr><tr><td>b</td><td>m</td></tr><tr><td>c</td><td>l</td></tr><tr><td>c</td><td>q</td></tr><tr><td>x</td><td>a</td></tr><tr><td>x</td><td>x</td></tr><tr><td>x</td><td>y</td></tr><tr><td>x</td><td>z</td></tr><tr><td>z</td><td>a</td></tr><tr><td>z</td><td>x</td></tr></tbody></table>",new $_.TableView(table,null,['name','description']).toHtml());
+              assert.equal("<table>"
+                  + "<thead><tr><th>name</th><th>description</th></tr></thead>"
+                  + "<tbody><tr><td>a</td><td>a</td></tr>"
+                  + "<tr><td>a</td><td>b</td></tr>"
+                  + "<tr><td>a</td><td>t</td></tr>"
+                  + "<tr><td>b</td><td>a</td></tr>"
+                  + "<tr><td>b</td><td>m</td></tr>"
+                  + "<tr><td>c</td><td>l</td></tr>"
+                  + "<tr><td>c</td><td>q</td></tr>"
+                  + "<tr><td>x</td><td>a</td></tr>"
+                  + "<tr><td>x</td><td>x</td></tr>"
+                  + "<tr><td>x</td><td>y</td></tr>"
+                  + "<tr><td>x</td><td>z</td></tr>"
+                  + "<tr><td>z</td><td>a</td></tr>"
+                  + "<tr><td>z</td><td>x</td></tr></tbody></table>",
+                  new $_.TableView(table, null, [ 'name', 'description' ])
+                      .toHtml());
             });
+            it(
+                '#toHtml with custom format',
+                function() {
+                  var table = descriptionTable();
+                  assert
+                      .equal(
+                          "<table><thead><tr><th>name</th><th>description</th><th>modified</th></tr></thead>"
+                              + "<tbody><tr><td>a</td><td>a</td><td>date</td></tr>"
+                              + "<tr><td>a</td><td>b</td><td>date</td></tr>"
+                              + "<tr><td>a</td><td>t</td><td>date</td></tr>"
+                              + "<tr><td>b</td><td>a</td><td>date</td></tr>"
+                              + "<tr><td>b</td><td>m</td><td>date</td></tr>"
+                              + "<tr><td>c</td><td>l</td><td>date</td></tr>"
+                              + "<tr><td>c</td><td>q</td><td>date</td></tr>"
+                              + "<tr><td>x</td><td>a</td><td>date</td></tr>"
+                              + "<tr><td>x</td><td>x</td><td>date</td></tr>"
+                              + "<tr><td>x</td><td>y</td><td>date</td></tr>"
+                              + "<tr><td>x</td><td>z</td><td>date</td></tr>"
+                              + "<tr><td>z</td><td>a</td><td>date</td></tr>"
+                              + "<tr><td>z</td><td>x</td><td>date</td></tr></tbody></table>",
+                          new $_.TableView(table, function(v) {
+                            return $_.utils.isDate(v) ? "date" : $_.utils
+                                .ensureString(v);
+                          }).toHtml());
+                });
           });
       describe(
           '#Column',
@@ -1011,17 +1052,29 @@ describe(
           }), "[1,2,3]");
         });
         it('join map', function() {
-          var m = { a: 1, b: 2, c: 3 };
-          assert.equal($_.utils.join(m, "", function(k,m){return m[k];}), "123");
-          assert.equal($_.utils.join(m, null,function(k,m){return m[k];}), "1,2,3");
-          assert.equal($_.utils.join(m, undefined,function(k,m){return m[k];}), "1,2,3");
+          var m = {
+            a : 1,
+            b : 2,
+            c : 3
+          };
+          assert.equal($_.utils.join(m, "", function(k, m) {
+            return m[k];
+          }), "123");
+          assert.equal($_.utils.join(m, null, function(k, m) {
+            return m[k];
+          }), "1,2,3");
+          assert.equal($_.utils.join(m, undefined, function(k, m) {
+            return m[k];
+          }), "1,2,3");
           assert.equal($_.utils.join(m), "a,b,c");
           assert.equal($_.utils.join(m, function(array, i, j) {
             return i === -1 ? "[" : j === 0 ? "]" : ",";
           }), "[a,b,c]");
           assert.equal($_.utils.join(m, function(array, i, j) {
             return i === -1 ? "[" : j === 0 ? "]" : ",";
-          },function(k,m){return m[k];}), "[1,2,3]");
+          }, function(k, m) {
+            return m[k];
+          }), "[1,2,3]");
         });
       });
       describe('#isString()', function() {

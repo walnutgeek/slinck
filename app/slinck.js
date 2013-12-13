@@ -1255,7 +1255,7 @@
             .forEach(function(th, i) {
               th.addText(columnNames[i]);
             });
-        var columns = data.header()
+        var columns = data.header();
         var tbody = table.child("tbody");
         for ( var rowIdx = 0; rowIdx < data.rowCount(); rowIdx++) {
           var tr = tbody.child("tr");
@@ -1269,15 +1269,6 @@
         return table.toString();
       };
       return this;
-//      return {
-//        columns : table.columns,
-//        rowIndexes : $_.utils.sequence(d.data.length),
-//        getValue : function(row, col) {
-//          var colName = $_.utils.isNumber(col) ? d.columns[col].name
-//              : col instanceof $_.Table.Column ? col.name : col;
-//          return d.row(row)[colName];
-//        }
-//      };
     }
     
     return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
