@@ -1,15 +1,14 @@
 // Lists -- {name: String}
-Lists = new Meteor.Collection("lists");
+Slincks = new Meteor.Collection("slincks");
 
 // Publish complete set of lists to all clients.
-Meteor.publish('lists', function () {
-  return Lists.find();
+Meteor.publish('slincks', function () {
+  return Slincks.find();
 });
 
 
 // Todos -- {text: String,
 //           done: Boolean,
-//           tags: [String, ...],
 //           list_id: String,
 //           timestamp: Number}
 Todos = new Meteor.Collection("todos");

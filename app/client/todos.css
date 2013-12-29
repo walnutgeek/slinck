@@ -37,7 +37,7 @@ h3 {
     padding: 8px 6px;
     text-align: center;
 }
-
+/*
 #top-tag-filter, #main-pane, #side-pane, #bottom-pane {
     position: absolute;
     left: 0;
@@ -74,7 +74,7 @@ h3 {
     border-right: 1px solid #999;
     background: #ddd;
 }
-
+*/
 .tag {
     cursor: pointer;
     float: left;

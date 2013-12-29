@@ -1,7 +1,7 @@
 // Client-side JavaScript, bundled and sent to client.
 
 // Define Minimongo collections to match server/publish.js.
-Lists = new Meteor.Collection("lists");
+Slincks = new Meteor.Collection("slincks");
 Todos = new Meteor.Collection("todos");
 
 // ID of currently selected list
@@ -21,11 +21,11 @@ Session.setDefault('editing_itemname', null);
 
 // Subscribe to 'lists' collection on startup.
 // Select a list once data has arrived.
-var listsHandle = Meteor.subscribe('lists', function () {
+var listsHandle = Meteor.subscribe('slincks', function () {
   if (!Session.get('list_id')) {
-    var list = Lists.findOne({}, {sort: {name: 1}});
-    if (list)
-      Router.setList(list._id);
+    var slinck = Slincks.findOne({}, {sort: {name: 1}});
+    if (slinck)
+      Router.setList(slinck.name);
   }
 });
 
@@ -33,6 +33,7 @@ var todosHandle = null;
 // Always be subscribed to the todos for the selected list.
 Deps.autorun(function () {
   var list_id = Session.get('list_id');
+  console.log("autorun:"+list_id);
   if (list_id)
     todosHandle = Meteor.subscribe('todos', list_id);
   else
@@ -82,34 +83,29 @@ Template.lists.loading = function () {
 };
 
 Template.lists.lists = function () {
-  return Lists.find({}, {sort: {name: 1}});
+  return Slincks.find({}, {sort: {name: 1}});
 };
 
 Template.lists.events({
   'mousedown .list': function (evt) { // select list
-    Router.setList(this._id);
+    Router.setList(this.name);
   },
   'click .list': function (evt) {
     // prevent clicks on <a> from refreshing the page.
     evt.preventDefault();
   },
-  'dblclick .list': function (evt, tmpl) { // start editing list name
-    Session.set('editing_listname', this._id);
-    Deps.flush(); // force DOM redraw, so we can focus the edit field
-    activateInput(tmpl.find("#list-name-input"));
-  }
-});
-
-// Attach events to keydown, keyup, and blur on "New list" input box.
-Template.lists.events(okCancelEvents(
-  '#new-list',
-  {
-    ok: function (text, evt) {
-      var id = Lists.insert({name: text});
-      Router.setList(id);
+  'click #newslincksubmit' :  function (evt) {
+      var name = $('#new-name').val();
+      Slincks.insert({
+        name: name, 
+        path: $('#new-path').val()
+      });
+      $('#new-name').val('');
+      $('#new-path').val('');
+      Router.setList(name);
       evt.target.value = "";
     }
-  }));
+});
 
 Template.lists.events(okCancelEvents(
   '#list-name-input',
@@ -302,7 +298,7 @@ Template.tag_filter.events({
 
 var TodosRouter = Backbone.Router.extend({
   routes: {
-    ":list_id": "main"
+    "*list_id": "main"
   },
   main: function (list_id) {
     var oldList = Session.get("list_id");
@@ -312,6 +308,7 @@ var TodosRouter = Backbone.Router.extend({
     }
   },
   setList: function (list_id) {
+    console.log(list_id);
     this.navigate(list_id, true);
   }
 });
