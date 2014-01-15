@@ -18,19 +18,20 @@
     <div class="collapse navbar-collapse navbar-ex1-collapse ">
 
      <ul class="nav navbar-nav navbar-right" >
-    <li class="active"><a href="#">Link</a></li>
-      <li><a href="#">Link</a></li>
       <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Settings <b class="caret"></b></a>
         <ul class="dropdown-menu">
-          <li><a href="#">Action</a></li>
-          <li><a href="#">Another action</a></li>
+          <li class="dropdown-header">Single Window</li>
+          <li><a href="#">1:0</a></li>
+          <li><a href="#">0:1</a></li>
           <li class="divider"></li>
-          <li><a href="#">Separated link</a></li>
-          <li class="divider"></li>
-          <li><a href="#">One more separated link</a></li>
+          <li class="dropdown-header">Double Windows</li>
+          <li><a href="#">1:3</a></li>
+          <li><a href="#">1:1</a></li>
+          <li><a href="#">3:1</a></li>
         </ul>
       </li>
+      <li class="active"><a href="#">Help</a></li>
     </ul>
  
        <form class="navbar-form" role="search">
@@ -44,109 +45,47 @@
   
     </div>
 </nav>
-
-  <div id="top-tag-filter">
-    {{> tag_filter}}
+  <div id="breadcrumb">
+    {{> breadcrumb}}
   </div>
-
-  <div id="main-pane">
-    {{> todos}}
+  <div id="left-pane" class="col-sm-6" >
+    left
+    {{> left}}
   </div>
-
-  <div id="side-pane">
-    {{> lists}}
+  <div id="right-pane" class="col-sm-6" >
+    right
+    {{> right}}
   </div>
 </body>
 
-<template name="lists">
-  <h3>Slinck</h3>
-  {{#if loading}}
-    <div id="lists">Loading...</div>
-  {{else}}
-    <div id="lists">
-      {{#each lists}}
-        <div class="list {{selected}}">
-          {{#if editing}}
-            <div class="edit">
-              <input class="list-name-input" id="slinck" type="text" value="{{name}}" />
-            </div>
-          {{else}}
-            <div class="display">
-              <a class="list-name {{name_class}}" href="/{{name}}">
-                {{name}} ( {{path}} )
-              </a>
-            </div>
-          {{/if}}
-        </div>
-      {{/each}}
-    </div>
-    <div id="createList">
-      <input type="text" id="new-name" placeholder="Name" />
-      <input type="text" id="new-path" placeholder="Path" />
-      <input type="button" id="newslincksubmit" value="Add" />
-    </div>
-  {{/if}}
+<template name="breadcrumb">
+	<ol class="sl">
+	{{#each sl.section.elements}}
+		<path><a href="#">{{.}}</a></path>
+	{{/each}}
+	{{#if sl.hasBounds}}
+		<span>?</span>
+		{{#each key_value sl.bounds}}
+		<var>
+		<a href="#">{{key}}</a> =
+		<a href="#">{{value.path}}</a></var>
+		{{/each}}
+	{{else}}
+		<span>//</span>
+		{{#each sl.path.elements}}
+		<path><a href="#">{{.}}</a></path>
+		{{/each}}
+	{{/if}}
+	</ol>
 </template>
 
-<template name="todos">
-  {{#if any_list_selected}}
-    <div id="items-view">
-      {{#if loading}}
-        Loading...
-      {{else}}
-        <div id="new-todo-box">
-          <input type="text" id="new-todo" placeholder="New item" />
-        </div>
-        <ul id="item-list">
-          {{#each todos}}
-            {{> todo_item}}
-          {{/each}}
-        </ul>
-      {{/if}}
-    </div>
-  {{/if}}
+<template name="left">
+    <div id="lists">side</div>
 </template>
 
-<template name="todo_item">
-  <li class="todo {{done_class}}">
-    {{#if editing}}
-      <div class="edit">
-        <input id="todo-input" type="text" value="{{text}}" />
-      </div>
-    {{else}}
-      <div class="destroy"></div>
-      <div class="display">
-        <input class="check" name="markdone" type="checkbox" {{{done_checkbox}}} />
-        <div class="todo-text">{{text}}</div>
-      </div>
-    {{/if}}
-    <div class="item-tags">
-      {{#each tag_objs}}
-        <div class="tag removable_tag">
-          <div class="name">{{tag}}</div>
-          <div class="remove"></div>
-        </div>
-      {{/each}}
-      {{#if adding_tag}}
-        <div class="tag edittag">
-          <input type="text" id="edittag-input" value="" />
-        </div>
-      {{else}}
-        <div class="tag addtag">
-          +tag
-        </div>
-      {{/if}}
+<template name="right">
+    <div id="view">
+	view
     </div>
-  </li>
 </template>
 
-<template name="tag_filter">
-  <div id="tag-filter" class="tag-list">
-    <div class="label">Show:</div>
-    {{#each tags}}
-      <div class="tag {{selected}}">
-        {{tag_text}} <span class="count">({{count}})</span>
-      </div>
-    {{/each}}
-  </div>
-</template>

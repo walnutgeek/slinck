@@ -1,0 +1,71 @@
+Basic Formatting:
+’’italic’’
+’’’bold’’’
+’’’’italic bold’’’’
+<strike> strike text </strike>
+empty line - paragraph
+<math>\sum.{n=0}\infty\frac{x^n}{n!}</math>
+
+Headings:
+== Level 2 ==
+=== Level 3 ===
+==== Level 4 ====
+===== Level 5 =====
+====== Level 6 ======
+
+Horizontal rule:	
+----
+
+Lists:
+* itemized list
+** second level
+*** third level
+# numbered list
+## second level
+### third level
+; DNA: Deoxyribonucleic acid 
+;; rDNA: Ribosomal DNA
+: colon indents line 
+:: more indented line
+
+Links:
+[[Internal Link]] 
+[[Internal Link|Alternative name for internal Link]] 
+[:Some other wiki:Wiki Page|Inter wiki link]]
+[http://external.com]
+[http://external.com Alternative name for external.com]
+
+Multimedia:
+[[Image:wiki.png]] 
+[[Image:wiki.png|frame|Caption]] 
+[[Image:wiki.png|thumb|Caption]] 
+[[Image:wiki.png|thumb|300px|Caption]] 
+[[Image:wiki.png|thumb|left|300px|Cap]] text floating 
+[[Media:video.asf|Video]]
+[[Media:filename.pdf|PDF]]
+
+Tables:
+{|
+| topleft || topmiddle || topright
+|-
+midleft || midmiddle || midright
+|-
+bottomleft || bottommiddle || bottomright3
+|}
+
+Macro:
+{{abc ...}}
+
+Content Macro:
+{{#xyz ...}} 
+...
+{{/xyz}}
+
+{{#nowiki}} 
+no ''markup''
+{{/nowiki}}
+
+{{#pre}} 
+block of text w/o reformatting
+{{/pre}}
+

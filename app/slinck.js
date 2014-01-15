@@ -36,7 +36,7 @@
     }
 
     function isNull(a) {
-      return a === null || a === undef;
+      return a === null || a === undefined;
     }
 
     function isPrimitive(a) {
@@ -48,6 +48,10 @@
       return !isPrimitive(a) && !isArray(a);
     }
 
+    function isArrayEmpty(array){
+      return isNull(array) || array.length == 0;
+    }
+    
     function extractArray(args) {
       var array = null;
       if (args.length === 0) {
@@ -64,6 +68,18 @@
       }
       return array;
     }
+    
+    function brodcastCall(brodcastTo, funcName, args){
+      if(! isArrayEmpty(brodcastTo) ){
+        brodcastTo.forEach(
+            function(castTo){
+              var f = castTo[funcName];
+              if( isFunction(f) ) f.apply(castTo,args);
+            }
+        );
+      }
+    }
+
 
     function convertListToObject(list, nameProperty) {
       if (!nameProperty) {
@@ -344,7 +360,7 @@
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
         extractArray, binarySearch, repeat, sequence, escapeXmlAttribute,
-        escapeXmlBody ]);
+        escapeXmlBody, brodcastCall, isArrayEmpty ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -533,6 +549,7 @@
         $_.utils.assert(d, [ "", "//", "?", null ]);
         iuc.section = new Path(sectionElements);
         iuc.bounds = {};
+        iuc.hasBounds = false;
         if (d === "//") {
           var pathElements = [];
           d = extractPathElements(t, pathElements);
@@ -553,6 +570,7 @@
             var conditionPath = [];
             d = extractPathElements(t, conditionPath);
             iuc.bounds[v] = new Bound(v, conditionPath);
+            iuc.hasBounds = true;
             $_.utils.assert(d, [ "", "&", null ]);
           } while (d === "&");
         }
@@ -579,8 +597,9 @@
       return keys;
     };
 
+
     Slinck.CONDITION = {
-      eq : function(r) {
+      eq :  function(r) {
         return r === 0;
       },
       ne : function(r) {
@@ -599,6 +618,7 @@
         return r > 0;
       },
     };
+    
 
     Slinck.prototype.bound = function(k) {
       if (this.pathBound && k === "eq") {
@@ -1271,8 +1291,58 @@
       return this;
     }
     
+    function Buffer(s,listenres) {
+      this.s = s ? s : "";
+      this.broadCastTo = listenres ? listenres : [] ;
+      this.append = function(toAdd){
+        this.s += toAdd;
+        $_.utils.brodcastCall(this.broadCastTo, 'append', arguments ); 
+      };
+      this.done =  function(){
+        $_.utils.brodcastCall(this.broadCastTo, 'done', arguments ); 
+      };
+    } 
+    
+    //Renderer: #render(params)
+    function Wiki(s){
+      this.text = s;
+      this.render = function(){
+        return this.text.replace(/(''+)([^'\n\r]+)(''+)/, function (m,g1,t,g2){
+          var i;
+          var minLength = Math.min(4,Math.min(g1.length,g2.length));
+          if( minLength  < g1.length ){
+            i = g1.length-minLength;
+            t = g1.substring(0,i) + t;
+            g1 = g1.substring(i);
+          }
+          if( minLength  < g2.length ){
+            i = g2.length-minLength;
+            t = t + g2.substring(0,i);
+            g2 = g2.substring(i);
+          }
+          var r = new XmlNode(minLength === 2 ? "i" : "b");
+          if (minLength === 4){
+            r.child("i").addText(t) ;
+          } else {
+            r.addText(t);
+          }
+          return r.toString();
+        } );
+      };
+    }
+    
+    function Sliki(text){
+      $_.utils.assert(this instanceof Sliki, true,
+      "please use 'new', when calling this function");
+//      var t = $_.utils.Tokenizer('{}');
+//      var parsed = [];
+//      var v = t.nextValue();
+      this.requiredParams = function(){return [];}
+      this.render = function(params){return new Wiki(text).render(params);}
+    }
+    
     return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
-        Type, ColumnRole, Index, XmlNode, TableView ]);
+        Type, ColumnRole, Index, XmlNode, TableView, Sliki ]);
   })());
 
 })();

@@ -29,6 +29,23 @@ describe('pecent_encoding', function() {
     });
   });
 });
+describe('Sliki', function() {
+  describe('#render', function() {
+    function scenario1(p, encoded) {
+      assert.equal(new $_.Sliki(p).render(), encoded);
+    }
+    ;
+    it('basic', function() {
+      //scenario1("{{#nowiki}}\nno ''markup''\n{{/nowiki}}\n", "<code>\nno ''markup''\n</code>\n");
+      scenario1("\nno ''markup''\n","\nno <i>markup</i>\n");
+      scenario1("\nno '''markup'''\n","\nno <b>markup</b>\n");
+      scenario1("\nno ''''markup''''\n","\nno <b><i>markup</i></b>\n");
+      scenario1("\nno '''markup''''\n","\nno <b>markup'</b>\n");
+      scenario1("\nno ''''markup'''\n","\nno <b>'markup</b>\n");
+      scenario1("\nno '''''markup''''\n","\nno <b><i>'markup</i></b>\n");
+    });
+  });
+});
 
 describe(
     'slinck',
@@ -1163,6 +1180,28 @@ describe(
           test(9, -6);
           test(24, -6);
           test(26, -7);
+        });
+      });
+      describe('#brodcastCall()', function() {
+        it('ints', function() {
+          var array = [ 'Nope', 'Nope' ];
+          var one = {f:function(i){assert.equal(this,one);assert.equal(i,1);array[0]="1";}};
+          var two = {f:function(i){assert.equal(this,two);assert.equal(i,1);array[1]="2";}};
+          var three = {};
+          $_.utils.brodcastCall([one,two,three] ,"f",[1]);
+          testArrays([ "1", "2" ], array);
+        });
+      });
+      describe('#isArrayEmpty()', function() {
+        it('ints', function() {
+          var nope = [ 'Nope', 'Nope' ];
+          var yes1 = null;
+          var yes2 = undefined;
+          var yes3 = [];
+          assert.equal($_.utils.isArrayEmpty(nope),false);
+          assert.equal($_.utils.isArrayEmpty(yes1),true);
+          assert.equal($_.utils.isArrayEmpty(yes2),true);
+          assert.equal($_.utils.isArrayEmpty(yes3),true);
         });
       });
       describe('#repeat()', function() {

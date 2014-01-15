@@ -9,13 +9,13 @@ Meteor.publish('slincks', function () {
 
 // Todos -- {text: String,
 //           done: Boolean,
-//           list_id: String,
+//           path: String,
 //           timestamp: Number}
 Todos = new Meteor.Collection("todos");
 
-// Publish all items for requested list_id.
-Meteor.publish('todos', function (list_id) {
-  check(list_id, String);
-  return Todos.find({list_id: list_id});
+// Publish all items for requested path.
+Meteor.publish('todos', function (path) {
+  check(path, String);
+  return Todos.find({path: path});
 });
 
