@@ -1307,26 +1307,53 @@
     function Wiki(s){
       this.text = s;
       this.render = function(){
-        return this.text.replace(/(''+)([^'\n\r]+)(''+)/, function (m,g1,t,g2){
+        
+        return this.text
+// Take care of cases:
+//        ’’italic’’
+//        ’’’bold’’’
+//        ’’’’italic bold’’’’
+        .replace(/(''+)([^'\n\r]+)(''+)/, function (m,g1,t,g2){
           var i;
-          var minLength = Math.min(4,Math.min(g1.length,g2.length));
-          if( minLength  < g1.length ){
-            i = g1.length-minLength;
+          var len = Math.min(4,Math.min(g1.length,g2.length));
+          if( len  < g1.length ){
+            i = g1.length-len;
             t = g1.substring(0,i) + t;
             g1 = g1.substring(i);
           }
-          if( minLength  < g2.length ){
-            i = g2.length-minLength;
+          if( len  < g2.length ){
+            i = g2.length-len;
             t = t + g2.substring(0,i);
             g2 = g2.substring(i);
           }
-          var r = new XmlNode(minLength === 2 ? "i" : "b");
-          if (minLength === 4){
+          var r = new XmlNode(len === 2 ? "i" : "b");
+          if (len === 4){
             r.child("i").addText(t) ;
           } else {
             r.addText(t);
           }
           return r.toString();
+        } )
+//        Headings:
+//== Level 2 ==
+//=== Level 3 ===
+//==== Level 4 ====
+//===== Level 5 =====
+//====== Level 6 ======
+        .replace(/(==+)([^=\n\r][^\n\r]*[^=\n\r])(==+)/, function (m,g1,t,g2){
+          var i;
+          var len = Math.min(6,Math.min(g1.length,g2.length));
+          if( len  < g1.length ){
+            i = g1.length-len;
+            t = g1.substring(0,i) + t;
+            g1 = g1.substring(i);
+          }
+          if( len  < g2.length ){
+            i = g2.length-len;
+            t = t + g2.substring(0,i);
+            g2 = g2.substring(i);
+          }
+          return new XmlNode("h"+len).addText(t).toString();
         } );
       };
     }
