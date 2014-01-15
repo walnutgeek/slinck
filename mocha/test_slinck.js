@@ -43,7 +43,7 @@ describe('Sliki', function() {
       scenario1("\nno '''markup''''\n","\nno <b>markup'</b>\n");
       scenario1("\nno ''''markup'''\n","\nno <b>'markup</b>\n");
       scenario1("\nno '''''markup''''\n","\nno <b><i>'markup</i></b>\n");
-      scenario1("\n== markup ==\n","\n<h2> markup </h2>\n");
+      scenario1("\n== markup ==\n","\n<h2>markup</h2>\n");
     });
   });
 });

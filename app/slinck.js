@@ -1340,7 +1340,7 @@
 //==== Level 4 ====
 //===== Level 5 =====
 //====== Level 6 ======
-        .replace(/(==+)([^=\n\r][^\n\r]*[^=\n\r])(==+)/, function (m,g1,t,g2){
+        .replace(/(==+) ([^\n\r]+) (==+)/, function (m,g1,t,g2){
           var i;
           var len = Math.min(6,Math.min(g1.length,g2.length));
           if( len  < g1.length ){
