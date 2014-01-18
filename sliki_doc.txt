@@ -1,4 +1,4 @@
-Basic Formatting:
+Basic Formatting:                       
 ’’italic’’
 ’’’bold’’’
 ’’’’italic bold’’’’

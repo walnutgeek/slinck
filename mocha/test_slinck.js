@@ -33,17 +33,24 @@ describe('Sliki', function() {
   describe('#render', function() {
     function scenario1(p, encoded) {
       assert.equal(new $_.Sliki(p).render(), encoded);
-    }
-    ;
+    };
     it('basic', function() {
       //scenario1("{{#nowiki}}\nno ''markup''\n{{/nowiki}}\n", "<code>\nno ''markup''\n</code>\n");
-      scenario1("\nno ''markup''\n","\nno <i>markup</i>\n");
-      scenario1("\nno '''markup'''\n","\nno <b>markup</b>\n");
-      scenario1("\nno ''''markup''''\n","\nno <b><i>markup</i></b>\n");
-      scenario1("\nno '''markup''''\n","\nno <b>markup'</b>\n");
-      scenario1("\nno ''''markup'''\n","\nno <b>'markup</b>\n");
-      scenario1("\nno '''''markup''''\n","\nno <b><i>'markup</i></b>\n");
-      scenario1("\n== markup ==\n","\n<h2>markup</h2>\n");
+      scenario1("\nno ''markup''\n","<p>\nno <i>markup</i>\n");
+      scenario1("\nno '''markup'''\n","<p>\nno <b>markup</b>\n");
+      scenario1("\nno ''''markup''''\n","<p>\nno <b><i>markup</i></b>\n");
+      scenario1("\nno '''markup''''\n","<p>\nno <b>markup'</b>\n");
+      scenario1("\nno ''''markup'''\n","<p>\nno <b>'markup</b>\n");
+      scenario1("\nno '''''markup''''\n","<p>\nno <b><i>'markup</i></b>\n");
+      scenario1("\nno '''''markup''''\n\n''markup''","<p>\nno <b><i>'markup</i></b>\n</p><p>\n<i>markup</i>");
+      scenario1("\nno <math>markup</math>, <math> a = b + c </math>\n","<p>\nno $$$ markup $$$, $$$  a = b + c  $$$\n");
+      scenario1("\n---- \t\n","<p>\n<hr>\n");
+    });
+    it('heading', function() {
+      scenario1("\n== markup ==\n","<p>\n<h2>markup</h2>\n");
+      scenario1("\n==== markup ===\n","<p>\n<h3>=markup</h3>\n");
+      scenario1("\n=== markup ====\n","<p>\n<h3>markup=</h3>\n");
+      scenario1("\n=== markup ====\n\n=== markup ====\n","<p>\n<h3>markup=</h3>\n</p><p>\n<h3>markup=</h3>\n");
     });
   });
 });
@@ -1203,6 +1210,16 @@ describe(
           assert.equal($_.utils.isArrayEmpty(yes1),true);
           assert.equal($_.utils.isArrayEmpty(yes2),true);
           assert.equal($_.utils.isArrayEmpty(yes3),true);
+        });
+      });
+      describe('#detectRepeatingChar()', function() {
+        it('', function() {
+          assert.equal($_.utils.detectRepeatingChar("###abc","#"), 3);
+        });
+      });
+      describe('#detectPrefix()', function() {
+        it('', function() {
+          assert.equal($_.utils.detectPrefix("{|abc","{|"), true);
         });
       });
       describe('#repeat()', function() {

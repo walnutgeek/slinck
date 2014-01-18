@@ -146,6 +146,19 @@
       }
       return result;
     }
+    
+    function detectRepeatingChar(l,c){
+      var at = 0 ;  
+      while( at < l.length && l.charAt(at) === c ) at++;
+      return at;
+    }
+
+    function detectPrefix(l,prefix){
+      var at = 0 ;  
+      while( at < prefix.length && at < l.length && l.charAt(at) === prefix.charAt(at) ) at++;
+      return prefix.length === at;
+    }
+
 
     function stringify(x) {
       return x === undefined ? "undefined" : x === null ? "null"
@@ -360,7 +373,7 @@
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
         extractArray, binarySearch, repeat, sequence, escapeXmlAttribute,
-        escapeXmlBody, brodcastCall, isArrayEmpty ]);
+        escapeXmlBody, brodcastCall, isArrayEmpty, detectRepeatingChar, detectPrefix ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -1303,19 +1316,13 @@
       };
     } 
     
+    
     //Renderer: #render(params)
     function Wiki(s){
-      this.text = s;
-      this.render = function(){
-        
-        return this.text
-// Take care of cases:
-//        ’’italic’’
-//        ’’’bold’’’
-//        ’’’’italic bold’’’’
-        .replace(/(''+)([^'\n\r]+)(''+)/, function (m,g1,t,g2){
+      var buildReplaceFunction = function(minLength,render){
+        return function (m,g1,t,g2){
           var i;
-          var len = Math.min(4,Math.min(g1.length,g2.length));
+          var len = Math.min(minLength,Math.min(g1.length,g2.length));
           if( len  < g1.length ){
             i = g1.length-len;
             t = g1.substring(0,i) + t;
@@ -1326,6 +1333,27 @@
             t = t + g2.substring(0,i);
             g2 = g2.substring(i);
           }
+          return render(len, g1, t, g2);
+        };
+      };
+      this.text = s;
+      this.render = function(){
+        var initialCleanup=this.text
+        .replace(/[\r\t ]+\n/g , "\n" )
+//        <strike> strike text </strike>                       
+//        empty line - paragraph                               
+//        <math>\sum.{n=0}\infty\frac{x^n}{n!}</math>          
+        .replace(/<strike>(.+?)<\/strike>/g, "<del>$1</del>")
+        .replace(/<math>(.+?)<\/math>/g, "$$$$$$ $1 $$$$$$")
+        .replace(/(\n)(\n)/g, "$1</p><p>$2")
+//        Horizontal rule: 
+//          ----                                               
+        .replace(/(\n)----(\s*\n)/g, "$1<hr>$2")
+// Take care of cases:
+//        ’’italic’’
+//        ’’’bold’’’
+//        ’’’’italic bold’’’’
+        .replace(/(''+)([^'\n]+)(''+)/g, buildReplaceFunction(4,  function (len,g1,t,g2){
           var r = new XmlNode(len === 2 ? "i" : "b");
           if (len === 4){
             r.child("i").addText(t) ;
@@ -1333,28 +1361,43 @@
             r.addText(t);
           }
           return r.toString();
-        } )
+        }))
 //        Headings:
 //== Level 2 ==
 //=== Level 3 ===
 //==== Level 4 ====
 //===== Level 5 =====
 //====== Level 6 ======
-        .replace(/(==+) ([^\n\r]+) (==+)/, function (m,g1,t,g2){
-          var i;
-          var len = Math.min(6,Math.min(g1.length,g2.length));
-          if( len  < g1.length ){
-            i = g1.length-len;
-            t = g1.substring(0,i) + t;
-            g1 = g1.substring(i);
-          }
-          if( len  < g2.length ){
-            i = g2.length-len;
-            t = t + g2.substring(0,i);
-            g2 = g2.substring(i);
-          }
+        .replace(/(==+) ([^\n\r]+) (==+)/g, buildReplaceFunction(6, function (len,g1,t,g2){
           return new XmlNode("h"+len).addText(t).toString();
-        } );
+        } ));
+        // per line procesing
+        var lines = initialCleanup.split(/\n/);
+//      Lists:
+//      * itemized list
+//      ** second level
+//      *** third level
+//      # numbered list
+//      ## second level
+//      ### third level
+//      ; DNA: Deoxyribonucleic acid 
+//      ;; rDNA: Ribosomal DNA
+//      : colon indents line 
+//      :: more indented line
+        var result = "";
+        var nodes = [] ;
+        var currentList = null
+        var level;
+        for ( var i = 0; i < lines.length; i++) {
+          var l = lines[i];
+//          if(currentList){
+//            level = $_.utils.detectRepeatingChar(l,"*");
+//            nodes.length === level;
+//          }
+          if(i !== 0 ) result += "\n";
+          result += l;
+        }
+        return result;
       };
     }
     
@@ -1365,7 +1408,7 @@
 //      var parsed = [];
 //      var v = t.nextValue();
       this.requiredParams = function(){return [];}
-      this.render = function(params){return new Wiki(text).render(params);}
+      this.render = function(params){return "<p>" + (new Wiki(text).render(params)) ;}
     }
     
     return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
