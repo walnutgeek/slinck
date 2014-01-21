@@ -4,6 +4,9 @@
     "basePackages": {
       "bootstrap3-less": {
         "version": "0.1.8"
+      },
+      "mathjax": {
+        "version": "0.5.0.1"
       }
     },
     "packages": {
@@ -11,6 +14,16 @@
         "git": "https://github.com/eprochasson/bootstrap3-less",
         "tag": "v0.1.8",
         "commit": "48b6db4435d9f01a1fcfe694a180b38e8e38835b"
+      },
+      "mathjax": {
+        "git": "https://github.com/apendua/meteor-mathjax.git",
+        "tag": "v0.5.0.1",
+        "commit": "b8aeb29497953223c3e49733aadd59df685781a7"
+      },
+      "module-loader": {
+        "git": "https://github.com/apendua/module-loader.git",
+        "tag": "v0.5.1",
+        "commit": "06c4f220272fb10dadec3ff431a47ce58e84cc8f"
       }
     }
   }

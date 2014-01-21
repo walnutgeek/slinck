@@ -12,3 +12,4 @@ preserve-inputs
 insecure
 bootstrap3-less
 less
+mathjax
