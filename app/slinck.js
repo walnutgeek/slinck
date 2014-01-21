@@ -1225,13 +1225,17 @@
         this.child(t, true);
         return this;
       },
-      child : function(childName, text) {
+      addChildNode: function(child){
         if (this.text) {
           throw $_.utils.error({
             message : "Cannot add child to text nodes",
             text : this.name
           });
         }
+        this.children.push(child);
+        return ;
+      },
+      child : function(childName, text) {
         if ($_.utils.isArray(childName)) {
           var results = [];
           for ( var i = 0; i < childName.length; i++) {
@@ -1240,7 +1244,7 @@
           return results;
         }else if ($_.utils.isString(childName)) {
             var child = new XmlNode(childName, text);
-            this.children.push(child);
+            this.addChildNode(child);
             return child;
         }  
         throw $_.utils.error({
@@ -1385,17 +1389,93 @@
 //      : colon indents line 
 //      :: more indented line
         var result = "";
-        var nodes = [] ;
-        var currentList = null
-        var level;
+        var current = null;
+        var c =  {
+            BULLETED:   { 
+              ch: "*", 
+              buildList: function(){
+                return new XmlNode("ul");
+              },
+              addItem: function(node,text){
+                node.addChildNode(new XmlNode("li").addText(text)) ;
+              }
+            },
+            NUMBERED:   { 
+              ch: "#",
+              buildList: function(){
+                return new XmlNode("ol");
+              },
+              addItem: function(node,text){
+                node.addChildNode(new XmlNode("li").addText(text)) ;
+              }
+            },
+            DEFINITION: { 
+              ch: ";",
+              buildList: function(){
+                return new XmlNode("dl");
+              },
+              addItem: function(node,text){
+                var re = /([^:]+):/;
+                var m=re.exec(text);
+                node.addChildNode(new XmlNode("dt").addText(m[1])) ;
+                node.addChildNode(new XmlNode("dd").addText(text.substring(re.lastIndex))) ;
+              }
+            },
+           INDENT:     { 
+              ch: ":",
+              buildList: function(){
+                return new XmlNode("ul").attr("style","list-style-type: none;");
+              },
+              addItem: function(node,text){
+                node.addChildNode(new XmlNode("li").addText(text)) ;
+              }
+            }, 
+        };
+        function detect(line,type){
+          var level = $_.utils.detectRepeatingChar(line,type.ch);
+          if(level>0){
+            if(current === null){
+              current = { type: type, levels: [] };
+            }
+            var text = line.substring(level);
+            if( current.levels.length > level ){
+              current.levels = current.levels.splice(0, level);
+            }else{
+              while(current.levels.length < level){
+                var newLevel = type.buildList();
+                if(current.levels.length>0){
+                  var last = current.levels[current.levels.length - 1];
+                  type.addItem( last,"");
+                  last.children[last.children.length-1].addChildNode(newLevel);
+                }
+                current.levels.push(newLevel);
+              }
+            }
+            type.addItem( current.levels[current.levels.length - 1],text);
+            return true;
+          }
+          return false;
+        }
         for ( var i = 0; i < lines.length; i++) {
           var l = lines[i];
-//          if(currentList){
-//            level = $_.utils.detectRepeatingChar(l,"*");
-//            nodes.length === level;
-//          }
+          if(current!==null){
+            if(detect(l, current.type) ){
+              continue;
+            }else{
+              result += "\n" + current.levels[0].toString();
+              current = null;
+            }
+          }
+          if(current===null){
+            if(detect(l,c.BULLETED) || detect(l, c.NUMBERED) || detect(l, c.DEFINITION) || detect(l, c.INDENT) ){
+              continue;
+            }
+          }
           if(i !== 0 ) result += "\n";
           result += l;
+        }
+        if(current!==null){
+          result += "\n" + current.levels[0].toString();
         }
         return result;
       };

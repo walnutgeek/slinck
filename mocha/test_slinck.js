@@ -52,6 +52,9 @@ describe('Sliki', function() {
       scenario1("\n=== markup ====\n","<p>\n<h3>markup=</h3>\n");
       scenario1("\n=== markup ====\n\n=== markup ====\n","<p>\n<h3>markup=</h3>\n</p><p>\n<h3>markup=</h3>\n");
     });
+    it('list', function() {
+      scenario1("\n* l1 a\n** l2 a\n** L2 b\n* L1 b","<p>\n<ul><li> l1 a</li><li><ul><li> l2 a</li><li> L2 b</li></ul></li><li> L1 b</li></ul>");
+    });
   });
 });
 
