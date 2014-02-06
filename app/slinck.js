@@ -1388,8 +1388,6 @@
 //      ;; rDNA: Ribosomal DNA
 //      : colon indents line 
 //      :: more indented line
-        var result = "";
-        var current = null;
         var c =  {
             BULLETED:   { 
               ch: "*", 
@@ -1415,10 +1413,10 @@
                 return new XmlNode("dl");
               },
               addItem: function(node,text){
-                var re = /([^:]+):/;
+                var re = /^([^:]+):(.*)/;
                 var m=re.exec(text);
                 node.addChildNode(new XmlNode("dt").addText(m[1])) ;
-                node.addChildNode(new XmlNode("dd").addText(text.substring(re.lastIndex))) ;
+                node.addChildNode(new XmlNode("dd").addText(m[2])) ;
               }
             },
            INDENT:     { 
@@ -1431,6 +1429,10 @@
               }
             }, 
         };
+        var result = "";
+        var current = null;
+        
+        //detect list in current line
         function detect(line,type){
           var level = $_.utils.detectRepeatingChar(line,type.ch);
           if(level>0){
@@ -1438,14 +1440,25 @@
               current = { type: type, levels: [] };
             }
             var text = line.substring(level);
-            if( current.levels.length > level ){
+            if( current.levels.length > level ){  // decending like:
+                                                  // ** previous line
+                                                  // * this line
               current.levels = current.levels.splice(0, level);
             }else{
-              while(current.levels.length < level){
+              // ascending like:
+              // * previous line
+              // ** this line
+              
+              while(current.levels.length < level ){
                 var newLevel = type.buildList();
+                // taking car of case when it is assending and  jump level:
+                // * a
+                // *** k
+                if( current.levels.length + 1 < level){
+                  type.addItem( newLevel ," ");
+                }
                 if(current.levels.length>0){
                   var last = current.levels[current.levels.length - 1];
-                  type.addItem( last,"");
                   last.children[last.children.length-1].addChildNode(newLevel);
                 }
                 current.levels.push(newLevel);
@@ -1458,17 +1471,13 @@
         }
         for ( var i = 0; i < lines.length; i++) {
           var l = lines[i];
-          if(current!==null){
-            if(detect(l, current.type) ){
-              continue;
-            }else{
+          var detectList = detect(l,c.BULLETED) || detect(l, c.NUMBERED) || detect(l, c.DEFINITION) || detect(l, c.INDENT);
+          if( detectList ){
+            continue;
+          }else{
+            if(current != null ){
               result += "\n" + current.levels[0].toString();
               current = null;
-            }
-          }
-          if(current===null){
-            if(detect(l,c.BULLETED) || detect(l, c.NUMBERED) || detect(l, c.DEFINITION) || detect(l, c.INDENT) ){
-              continue;
             }
           }
           if(i !== 0 ) result += "\n";

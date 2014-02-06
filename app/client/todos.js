@@ -66,13 +66,7 @@ var activateInput = function (input) {
 
 ////////// Lists //////////
 
-Template.left.loading = function () {
-  return !listsHandle.ready();
-};
 
-Template.left.lists = function () {
-  return Slincks.find({}, {sort: {name: 1}});
-};
 
 
 
@@ -138,11 +132,15 @@ Meteor.startup(function () {
 });
 
 Meteor.startup(function(){
-  var myCodeMirror = CodeMirror(
+  var cm = CodeMirror(
       $('#view')[0], {
-        value: "function myScript(){return 100;}\n",
-        mode:  "javascript"
+        value: "",
+        mode:  "sliki",
       });
+  cm.on('change',  function(){
+       var h = new $_.Sliki(cm.getDoc().getValue()).render();
+       $('#sliki').html(h);
+  });
 });
 
 
