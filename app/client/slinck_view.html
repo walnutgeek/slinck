@@ -3,6 +3,7 @@
 </head>
 
 <body>
+  
 <nav class="navbar navbar-static-top" role="navigation">
 
     <div class="navbar-header">
@@ -17,32 +18,20 @@
 
     <div class="collapse navbar-collapse navbar-ex1-collapse ">
 
-     <ul class="nav navbar-nav navbar-right" >
-      <li class="dropdown">
-        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Settings <b class="caret"></b></a>
-        <ul class="dropdown-menu">
-          <li class="dropdown-header">Single Window</li>
-          <li><a href="#">1:0</a></li>
-          <li><a href="#">0:1</a></li>
-          <li class="divider"></li>
-          <li class="dropdown-header">Double Windows</li>
-          <li><a href="#">1:3</a></li>
-          <li><a href="#">1:1</a></li>
-          <li><a href="#">3:1</a></li>
-        </ul>
+     <ul class="nav navbar-nav navbar-left" >
+      <li>
+		<a>{{loginButtons}}</a> 	
       </li>
-      <li class="active"><a href="#">Help</a></li>
+      <li>
     </ul>
- 
        <form class="navbar-form" role="search">
-        <div class="input-group col-sm-3 col-md-3 navbar-right">
+        <div class="input-group col-sm-3 col-md-3 navbar-left">
             <input type="text" class="form-control" placeholder="Search" name="srch-term" id="srch-term">
             <div class="input-group-btn">
                 <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
             </div>
         </div>
        </form>
-  
     </div>
 </nav>
   <div id="breadcrumb">

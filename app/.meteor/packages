@@ -13,3 +13,11 @@ insecure
 bootstrap3-less
 less
 mathjax
+collectionFS
+cfs-gridfs
+cfs-filesystem
+cfs-handlebars
+cfs-graphicsmagick
+accounts-github
+accounts-ui
+accounts-password
