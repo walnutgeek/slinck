@@ -10,6 +10,7 @@ jquery
 underscore
 less
 handlebars
+backbone
 accounts-base
 accounts-password
 accounts-github

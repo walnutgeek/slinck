@@ -1,11 +1,7 @@
 // Client-side JavaScript, bundled and sent to client.
 Sections = new Meteor.Collection("sections");
 Directories = new Meteor.Collection("directories");
-Files = new FS.Collection("files");
-
-
-Slincks = new Meteor.Collection("sections");
-Files = new Meteor.Collection("files");
+Files = new FS.Collection("files",{stores:["files_uploads","files_gridfs"]});
 
 // ID of currently selected list
 Session.setDefault('sl', null);
