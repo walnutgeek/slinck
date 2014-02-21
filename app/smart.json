@@ -1,6 +1,5 @@
 {
   "packages": {
-    "bootstrap3-less": {},
     "mathjax": {},
     "collectionFS": {
       "git": "https://github.com/CollectionFS/Meteor-CollectionFS.git",

@@ -1,0 +1,27 @@
+
+
+.sl {
+	padding: 8px 15px;
+	margin: 10px 10px 10px 10px;
+	list-style: none;
+	background-color: #f5f5f5;
+	border-radius: 8px;
+}
+
+.sl> path,var {
+	display: inline-block;
+}
+
+.sl>path+path:before {
+	content: "/";
+	padding: 0 5px;
+	color: #cccccc;
+}
+.sl>var + var:before {
+	content: "&";
+	padding: 0 5px;
+	color: #cccccc;
+}
+.sl > span {
+  color: #cccccc;
+}
