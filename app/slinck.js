@@ -1282,9 +1282,6 @@
       $_.utils.assert(this instanceof TableView, true,
           "please use 'new', when calling this function");
       this.toHtml = function() {
-        var formatter = $_.utils.isFunction(format) ? format : function( val, col, idx, row){
-           return $_.utils.ensureString(val);
-        }; 
         var table = new XmlNode("table");
         var thead = table.child("thead");
         if(!columnNames) columnNames=data.header().map(function(col){return col.name;});
@@ -1300,7 +1297,14 @@
           for ( var colIdx = 0; colIdx < columnNames.length; colIdx++) {
             var td = tr.child("td");
             var colName = columnNames[colIdx];
-            td.addText(formatter(rowData[colName],columns.hash[colName],colIdx,rowData));
+            var fv = $_.utils.isFunction(format) ? rowData[colName] : format(rowData[colName],columns.hash[colName],colIdx,rowData);
+            if(fv instanceof XmlNode ){
+              td.addChildNode(fv);
+            }else if( $_.utils.isString(fv)){
+              td.addText(fv);
+            }else{
+              td.addText($_.utils.ensureString(fv));
+            }
           }
         }
         if( customizeTable ) customizeTable(table);
