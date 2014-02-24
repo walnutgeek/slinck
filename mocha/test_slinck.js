@@ -722,6 +722,13 @@ describe(
               assert.equal(row.name, "b");
               assert.equal(row.description, "m");
               assert.equal(filtered.getRowCount(), 2);
+              row = table.row(3);
+              assert.equal(row._rowId, 3);
+              assert.equal(row.name, "b");
+              row = table.row(4);
+              assert.equal(row._rowId, 4);
+              assert.equal(row.name, "b");
+
             });            
             it('sort Table', function() {
               var table = new $_.Table();
