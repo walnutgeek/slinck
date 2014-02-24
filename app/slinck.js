@@ -1278,7 +1278,7 @@
     });
     /** /XmlNode */
 
-    function TableView(data, format, columnNames) {
+    function TableView(data, format, columnNames,customizeTable) {
       $_.utils.assert(this instanceof TableView, true,
           "please use 'new', when calling this function");
       this.toHtml = function() {
@@ -1303,6 +1303,7 @@
             td.addText(formatter(rowData[colName],columns.hash[colName],colIdx,rowData));
           }
         }
+        if( customizeTable ) customizeTable(table);
         return table.toString();
       };
       return this;
