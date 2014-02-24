@@ -1297,7 +1297,7 @@
           for ( var colIdx = 0; colIdx < columnNames.length; colIdx++) {
             var td = tr.child("td");
             var colName = columnNames[colIdx];
-            var fv = $_.utils.isFunction(format) ? rowData[colName] : format(rowData[colName],columns.hash[colName],colIdx,rowData);
+            var fv = !$_.utils.isFunction(format) ? rowData[colName] : format(rowData[colName],columns.hash[colName],colIdx,rowData);
             if(fv instanceof XmlNode ){
               td.addChildNode(fv);
             }else if( $_.utils.isString(fv)){
