@@ -728,6 +728,7 @@ describe(
               row = table.row(4);
               assert.equal(row._rowId, 4);
               assert.equal(row.name, "b");
+              assert.equal(filtered.header().length,3);
 
             });            
             it('sort Table', function() {

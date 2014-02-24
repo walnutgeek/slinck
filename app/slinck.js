@@ -1009,9 +1009,9 @@
               at : this.length
             });
           }
-          Array.prototype.push.apply(this, arguments);
           this.hash[arguments[i].name] = arguments[i];
         }
+        Array.prototype.push.apply(this, arguments);
       };
       if (columns && columns.length > 0) {
         this.columns.push.apply(this.columns, columns);
