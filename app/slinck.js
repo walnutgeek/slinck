@@ -1048,6 +1048,10 @@
       },
       add : function(rowData) {
         var rowId = this.data.length;
+        if( rowData.hasOwnProperty("_rowId") ){
+          //need to clone
+          rowData = $_.utils.append({},rowData);
+        }
         this.data.push(rowData);
         rowData._rowId = rowId;
         return rowId;
@@ -1058,6 +1062,15 @@
           this.checkColumns(Object.keys(rowData));
           $_.utils.append(row, rowData);
         }
+      },
+      filter: function(shouldRowBeIncluded){
+        var filtered = new Table(this.columns);
+        for ( var rowId = 0; rowId < this.data.length; rowId++) {
+          if(shouldRowBeIncluded(this.data[rowId])){
+            filtered.add(this.data[rowId]);
+          }
+        }
+        return filtered;
       },
       addColumn : function(name, title, type) {
         $_.utils.assert(0, this.data.length, "Data has to be empty");
@@ -1077,7 +1090,7 @@
         }
       },
       getRowCount : function() {
-        return data.length;
+        return this.data.length;
       },
       makeCompare : function() {
         var keys = $_.utils.extractArray(arguments);

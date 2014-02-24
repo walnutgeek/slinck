@@ -710,6 +710,19 @@ describe(
               assert.equal(row.description, "a");
               assert.ok(row.modified === null);
             });
+            it('filter', function() {
+              var table = descriptionTable();
+              var filtered = table.filter(function(r){return r.name == "b";});
+              var row = filtered.row(0);
+              assert.equal(row._rowId, 0);
+              assert.equal(row.name, "b");
+              assert.equal(row.description, "a");
+              row = filtered.row(1);
+              assert.equal(row._rowId, 1);
+              assert.equal(row.name, "b");
+              assert.equal(row.description, "m");
+              assert.equal(filtered.getRowCount(), 2);
+            });            
             it('sort Table', function() {
               var table = new $_.Table();
               table.addColumn("name", null, $_.Type.string);
