@@ -1070,6 +1070,14 @@ describe(
           }));
         });
       });
+      describe('#getFunctionName()', function() {
+        it('', function() {
+          function a(){return 5;}
+          assert.equal("a", $_.utils.getFunctionName(a));
+          function $_a(){return 5;}
+          assert.equal("a", $_.utils.getFunctionName(a));
+        });
+      });
       describe('#append()', function() {
         it('', function() {
           var x = {

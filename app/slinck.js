@@ -68,6 +68,11 @@
       }
       return array;
     }
+
+    function getFunctionName(f) {
+      var m = f.toString().match(/^\s*function\s*([^\s(]+)/);
+      return m ? m[1] : "";
+    }
     
     function brodcastCall(brodcastTo, funcName, args){
       if(! isArrayEmpty(brodcastTo) ){
@@ -87,7 +92,11 @@
       }
       var obj = new Object();
       for ( var i = 0; i < list.length; i++) {
-        obj[list[i][nameProperty]] = list[i];
+        var k = list[i][nameProperty];
+        if (k === undefined && isFunction(list[i])) {
+          k = getFunctionName(list[i]);
+        }
+        obj[k] = list[i];
       }
       return obj;
     }
@@ -368,7 +377,7 @@
       return escapeEntities(s, "<>&");
     }
 
-    return convertListToObject([ convertListToObject, isArray, append, size,
+    return convertListToObject([ convertListToObject, getFunctionName, isArray, append, size,
         join, error, applyOnAll, assert, Tokenizer, stringify, padWith,
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
@@ -1163,11 +1172,11 @@
     }
 
     $_.utils.append(Index.prototype, {
-      rowCount: function() {
-        return table.rowCount();
+      getRowCount: function() {
+        return this.table.getRowCount();
       },
       header: function(){
-        return table.columns;
+        return this.table.columns;
       },
       indexOf : function(searchFor) {
         var self = this;
