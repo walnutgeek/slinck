@@ -69,10 +69,6 @@
       return array;
     }
 
-    function getFunctionName(f) {
-      var m = f.toString().match(/^\s*function\s*([^\s(]+)/);
-      return m ? m[1] : "";
-    }
     
     function brodcastCall(brodcastTo, funcName, args){
       if(! isArrayEmpty(brodcastTo) ){
@@ -86,21 +82,47 @@
     }
 
 
-    function convertListToObject(list, nameProperty) {
-      if (!nameProperty) {
-        nameProperty = "name";
-      }
+    function extractFunctionName(f) { // because IE does not support Function.prototype.name property
+      var m = f.toString().match(/^\s*function\s*([^\s(]+)/);
+      return m ? m[1] : "";
+    }
+    
+    function getPropertyExtractor(property) { 
+      return function(o) { 
+        return o[property];
+      };
+    }
+    
+    function combineKeyExtractors() {
+      var extractors = arguments;
+      return function(o) {
+        for ( var i = 0; i < extractors.length; i++) {
+          var key = extractors[i](o);
+          if(key !== undefined){
+            return key;
+          }
+        }
+        return undefined;
+      };
+    }
+
+    function convertListToObject(list,extractor) {
       var obj = new Object();
       for ( var i = 0; i < list.length; i++) {
-        var k = list[i][nameProperty];
-        if (k === undefined && isFunction(list[i])) {
-          k = getFunctionName(list[i]);
+        var v = list[i];
+        var k = extractor(v);
+        if( k !== undefined ){
+          obj[k] = v;
         }
-        obj[k] = list[i];
       }
       return obj;
     }
 
+    
+    function convertFunctionsToObject(funcList) {
+      return convertListToObject(funcList, combineKeyExtractors(getPropertyExtractor("name"), extractFunctionName));
+    }
+    
     function applyOnAll(obj, action) {
       for ( var k in obj) {
         if (obj.hasOwnProperty(k)) {
@@ -377,7 +399,8 @@
       return escapeEntities(s, "<>&");
     }
 
-    return convertListToObject([ convertListToObject, getFunctionName, isArray, append, size,
+    return convertFunctionsToObject([ convertFunctionsToObject, convertListToObject,
+        combineKeyExtractors, extractFunctionName, isArray, append, size,
         join, error, applyOnAll, assert, Tokenizer, stringify, padWith,
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
@@ -471,7 +494,7 @@
       return text;
     }
 
-    return $_.utils.convertListToObject([ encode, decode ]);
+    return $_.utils.convertFunctionsToObject([ encode, decode ]);
   })();
 
   /**
@@ -1527,7 +1550,7 @@
       this.render = function(params){return "<p>" + (new Wiki(text).render(params)) ;}
     }
     
-    return $_.utils.convertListToObject([ Slinck, Path, Graph, Table, Column,
+    return $_.utils.convertFunctionsToObject([ Slinck, Path, Graph, Table, Column,
         Type, ColumnRole, Index, XmlNode, TableView, Sliki ]);
   })());
 

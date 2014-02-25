@@ -1070,12 +1070,12 @@ describe(
           }));
         });
       });
-      describe('#getFunctionName()', function() {
+      describe('#extractFunctionName()', function() {
         it('', function() {
           function a(){return 5;}
-          assert.equal("a", $_.utils.getFunctionName(a));
+          assert.equal("a", $_.utils.extractFunctionName(a));
           function $_a(){return 5;}
-          assert.equal("a", $_.utils.getFunctionName(a));
+          assert.equal("$_a", $_.utils.extractFunctionName($_a));
         });
       });
       describe('#append()', function() {
