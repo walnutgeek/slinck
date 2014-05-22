@@ -11,10 +11,10 @@
   } , 
   
   "devDependencies": {
-    "mocha" : "1.x"
-    "coveralls" : "x",
-    "mocha-lcov-reporting": "x"
-    "blanket": "x"
+    "mocha" : "*"
+    "coveralls" : "*",
+    "mocha-lcov-reporting": "*",
+    "blanket": "*"
     
   }
 }
