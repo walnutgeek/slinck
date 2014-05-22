@@ -13,7 +13,7 @@
   "devDependencies": {
     "mocha" : "*",
     "coveralls" : "*",
-    "mocha-lcov-reporting": "*",
+    "mocha-lcov-reporter": "*",
     "blanket": "*"
     
   }
