@@ -953,12 +953,12 @@ describe(
                 'compare date',
                 function() {
                   var a = [ "1980-01-02", "December 31, 1979", null,
-                      new Date("1980-01-01T00:00:00.0000Z"), undefined ];
+                      new Date("1980-01-01T00:00:00.0000Z").toUTCString(), undefined ,new Date("1990-01-01T00:00:00.0000Z")];
                   a.sort($_.Type.date.compare);
-                  assert
-                      .equal(
-                          "['December 31, 1979',Mon Dec 31 1979 16:00:00 GMT-0800 (PST),'1980-01-02',null,undefined]",
-                          $_.utils.stringify(a));
+                  var s = $_.utils.stringify(a);
+                  assert.ok(s.indexOf("['December 31, 1979','Tue, 01 Jan 1980 00:00:00 GMT','1980-01-02',") === 0);
+                  var endsWith =",null,undefined]";
+                  assert.ok(s.indexOf(endsWith,s.length-endsWith.length) !== -1);
                   assert.equal(a[4], undefined);
                 });
           });
