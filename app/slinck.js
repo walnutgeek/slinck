@@ -118,7 +118,6 @@
       return obj;
     }
 
-    
     function convertFunctionsToObject(funcList) {
       return convertListToObject(funcList, combineKeyExtractors(getPropertyExtractor("name"), extractFunctionName));
     }
@@ -324,6 +323,29 @@
       });
     }
 
+    function BiMap(map) {
+      var forward = map
+      var _inverse = null;
+      function inverse(){
+        if( _inverse === null ){
+          _inverse = {}
+          for ( var key in forward) {
+            if (forward.hasOwnProperty(key)) {
+              _inverse[forward[key]]=key;
+            }
+          }
+        }
+        return _inverse;
+      }
+      return {
+        get: function(key) { return forward[key]; },
+        key: function(val) { return inverse()[val]; },
+        put: function(key,val) { forward[key] = val; _inverse = null; },
+        del: function(key) { delete forward[key];_inverse = null; },
+        keys: function() { return Object.keys(forward); }
+      };
+    }
+
     function Tokenizer(s, delimiters) {
       var i = 0;
 
@@ -401,7 +423,7 @@
 
     return convertFunctionsToObject([ convertFunctionsToObject, convertListToObject,
         combineKeyExtractors, extractFunctionName, isArray, append, size,
-        join, error, applyOnAll, assert, Tokenizer, stringify, padWith,
+        join, error, applyOnAll, assert, BiMap, Tokenizer, stringify, padWith,
         dateToIsoString, ensureDate, ensureString, isObject, isString,
         isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
         extractArray, binarySearch, repeat, sequence, escapeXmlAttribute,
@@ -880,8 +902,7 @@
       visitBreadthFirst : function(vertexKeys, direction, onVisit, compare) {
         if (!compare)
           compare = Type.string.compare;
-        var queue = $_.utils.isArray(vertexKeys) ? vertexKeys.slice(0) : Object
-            .keys(vertexKeys);
+        var queue = $_.utils.isArray(vertexKeys) ? vertexKeys.slice(0) : Object.keys(vertexKeys);
         queue.sort(compare);
         while (queue.length > 0) {
           var k = queue.shift();

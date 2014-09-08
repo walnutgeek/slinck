@@ -1062,6 +1062,20 @@ describe(
           assert.equal(tt.nextDelimiter(), "");
         });
       });
+      describe('#BiMap', function() {
+        it('check BiMap', function() {
+          
+          var m = $_.utils.BiMap( { a: 1, b: 2} );
+          assert.equal(m.get('a'), 1);
+          assert.equal(m.get('b'), 2);
+          assert.equal(m.key(2), 'b');
+          assert.equal(m.key(3), null);
+          m.put('z', 3)
+          assert.equal(m.key(3), 'z');
+          m.del('b')
+          assert.equal(""+m.keys(), "a,z")
+        });
+      });
       describe('#isArray()', function() {
         it('', function() {
           assert.ok($_.utils.isArray([ 1, 2, 3 ]));
