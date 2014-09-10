@@ -1198,6 +1198,37 @@ describe(
           assert.equal($_.utils.padWith(685, '0000'), '0685');
         });
       });
+      describe('#parseDateUTC()', function() {
+        it('', function() {
+          var isoDate = $_.utils.parseDateUTC('2014-09-08 17:00:00');
+          assert.equal('2014-09-08T17:00:00.0000Z', $_.utils.dateToIsoString(isoDate));
+          var isoDate = $_.utils.parseDateUTC('2014-09-08 17:00:00.456546');
+          assert.equal('2014-09-08T17:00:00.0456Z', $_.utils.dateToIsoString(isoDate));
+        });
+      });
+      describe('#relativeDateString()', function() {
+        it('', function() {
+          var s = $_.utils.relativeDateString(
+              $_.utils.parseDateUTC('2014-09-08 17:00:00'),
+              $_.utils.parseDateUTC('2014-09-08 18:01:20'));
+          assert.equal(s, '-01:01');
+          s = $_.utils.relativeDateString(
+              $_.utils.parseDateUTC('2014-09-08 18:01:20'), 
+              $_.utils.parseDateUTC('2014-09-08 17:00:00')
+              );
+          assert.equal(s, '+01:01');
+          s = $_.utils.relativeDateString(
+              $_.utils.parseDateUTC('2014-09-08 18:01:20'), 
+              $_.utils.parseDateUTC('2014-09-09 17:00:00')
+          );
+          assert.equal(s, '-22:59');
+          s = $_.utils.relativeDateString(
+              $_.utils.parseDateUTC('2014-09-08 18:01:20'), 
+              $_.utils.parseDateUTC('2014-09-10 17:00:00')
+          );
+          assert.equal(s, '2014-09-08 18:01');
+        });
+      });
       describe('#dateToIsoString()', function() {
         it('', function() {
           var isoDate = $_.utils

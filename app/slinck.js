@@ -280,7 +280,35 @@
           + padWith(date.getUTCSeconds(), '00') + '.'
           + padWith(date.getUTCMilliseconds(), '0000') + 'Z';
     }
-
+    
+    //
+    
+    function parseDateUTC(s){
+      return new Date(Date.parse(s+' UTC'))
+    }
+    
+    function relativeDateString(date,rel) {
+      if(rel === undefined){
+        rel = new Date();
+      }
+      if( Math.abs(date.getTime() - rel.getTime()) < 86400000 ){
+        var a = Math.floor( (date.getTime() - rel.getTime())  / 1000);
+        var s = Math.abs(a) + 30;
+        var m = Math.floor( s / 60 );
+        var h = Math.floor( m / 60 );
+        s = s % 60;
+        m = m % 60;
+        return (a < 0 ? '-' : '+') + padWith(h, '00') + ':'
+        + padWith(m, '00')  ;
+      } else {
+        return date.getUTCFullYear() + '-'
+        + padWith(date.getUTCMonth() + 1, '00') + '-'
+        + padWith(date.getUTCDate(), '00') + ' '
+        + padWith(date.getUTCHours(), '00') + ':'
+        + padWith(date.getUTCMinutes(), '00') ;
+      }
+    }
+    
     if (!Date.prototype.toISOString) {
       Date.prototype.toISOString = function() {
         return dateToIsoString(this);
@@ -424,10 +452,11 @@
     return convertFunctionsToObject([ convertFunctionsToObject, convertListToObject,
         combineKeyExtractors, extractFunctionName, isArray, append, size,
         join, error, applyOnAll, assert, BiMap, Tokenizer, stringify, padWith,
-        dateToIsoString, ensureDate, ensureString, isObject, isString,
-        isNumber, isBoolean, isFunction, isDate, isPrimitive, isNull,
-        extractArray, binarySearch, repeat, sequence, escapeXmlAttribute,
-        escapeXmlBody, brodcastCall, isArrayEmpty, detectRepeatingChar, detectPrefix ]);
+        relativeDateString, parseDateUTC, dateToIsoString, ensureDate, 
+        ensureString, isObject, isString, isNumber, isBoolean, isFunction, 
+        isDate, isPrimitive, isNull, extractArray, binarySearch, repeat, 
+        sequence, escapeXmlAttribute, escapeXmlBody, brodcastCall, 
+        isArrayEmpty, detectRepeatingChar, detectPrefix ]);
   })();
 
   $_.percent_encoding = (function() {
@@ -845,6 +874,8 @@
     new ColumnRole("primary_key");
     new ColumnRole("data");
     new ColumnRole("attachment");
+    
+    
 
     Object.freeze(ColumnRole);
 
