@@ -1,5 +1,5 @@
 (function() {
-
+  
   var WUN = 653826927654; // weird unique number
 
   var $_ = new Object();
@@ -284,11 +284,18 @@
     //
     
     function parseDateUTC(s){
-      return new Date(Date.parse(s+' UTC'))
+      return new Date(Date.parse(s+' UTC'));
     }
     
     function relativeDateString(date,rel) {
-      if(rel === undefined){
+      if(!isDate(date)){
+        if(!isNull(date)){
+          date = parseDateUTC(date);
+        }else{
+          return "";
+        }
+      }
+      if(!isDate(rel)){
         rel = new Date();
       }
       if( Math.abs(date.getTime() - rel.getTime()) < 86400000 ){
@@ -298,15 +305,14 @@
         var h = Math.floor( m / 60 );
         s = s % 60;
         m = m % 60;
-        return (a < 0 ? '-' : '+') + padWith(h, '00') + ':'
-        + padWith(m, '00')  ;
-      } else {
-        return date.getUTCFullYear() + '-'
-        + padWith(date.getUTCMonth() + 1, '00') + '-'
-        + padWith(date.getUTCDate(), '00') + ' '
-        + padWith(date.getUTCHours(), '00') + ':'
-        + padWith(date.getUTCMinutes(), '00') ;
-      }
+        return (a < 0 ? '-' : '+') + padWith(h, '00') + ':' + padWith(m, '00')  ;
+      } 
+      return date.getUTCFullYear() + '-'
+      + padWith(date.getUTCMonth() + 1, '00') + '-'
+      + padWith(date.getUTCDate(), '00') + ' '
+      + padWith(date.getUTCHours(), '00') + ':'
+      + padWith(date.getUTCMinutes(), '00') ;
+      
     }
     
     if (!Date.prototype.toISOString) {
@@ -352,11 +358,11 @@
     }
 
     function BiMap(map) {
-      var forward = map
+      var forward = map;
       var _inverse = null;
       function inverse(){
         if( _inverse === null ){
-          _inverse = {}
+          _inverse = {};
           for ( var key in forward) {
             if (forward.hasOwnProperty(key)) {
               _inverse[forward[key]]=key;
@@ -370,7 +376,8 @@
         key: function(val) { return inverse()[val]; },
         put: function(key,val) { forward[key] = val; _inverse = null; },
         del: function(key) { delete forward[key];_inverse = null; },
-        keys: function() { return Object.keys(forward); }
+        keys: function() { return Object.keys(forward); },
+        values: function() { return Object.keys(inverse()); }
       };
     }
 
@@ -1374,7 +1381,6 @@
       }
     });
     /** /XmlNode */
-
     function TableView(data, format, columnNames,customizeTable) {
       $_.utils.assert(this instanceof TableView, true,
           "please use 'new', when calling this function");
@@ -1601,9 +1607,20 @@
       this.requiredParams = function(){return [];}
       this.render = function(params){return "<p>" + (new Wiki(text).render(params)) ;}
     }
+
+    // d3 related stuff
+    function TCell(d, varName, colspan, format){
+      return {
+        colspan: colspan || 1,
+        content: function(){
+          return !varName ? '' : format ? format(d[varName]) : d[varName]; 
+        }
+      };
+    }
+
     
     return $_.utils.convertFunctionsToObject([ Slinck, Path, Graph, Table, Column,
-        Type, ColumnRole, Index, XmlNode, TableView, Sliki ]);
+        Type, ColumnRole, Index, XmlNode, TableView, Sliki, TCell ]);
   })());
 
 })();
