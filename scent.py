@@ -10,7 +10,7 @@ def execute_mocha(*args):
     import nose
     if 0 == os.system('cd mocha ; mocha .'):
        vars = { 's' : 'slinck.js',
-                'd' : '~/Documents/workspace/OnTimer/ontimer/web' };
+                'd' : '~/git/OnTimer/ontimer/web' };
        os.system( 'rm -f {d}/{s}; cp app/{s} {d}/; chmod 444 {d}/{s}'.format(**vars) );
        return True
     return False
