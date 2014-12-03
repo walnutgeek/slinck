@@ -1167,7 +1167,20 @@ describe(
           assert.equal($_.utils.stringify(5), "5");
           assert.equal($_.utils.stringify([]), "[]");
           assert.equal($_.utils.stringify([ 3, 'a', [ true, [] ] ]),
-              "[3,'a',[true,[]]]");
+          "[3,'a',[true,[]]]");
+        });
+      });
+      describe('#splitUrlPath()', function() {
+        it('', function() {
+          function test(path, compare_with){
+            assert.equal(JSON.stringify($_.utils.splitUrlPath(path)), compare_with );
+          }
+          test("abc",'{"path":["abc"],"variables":{}}');
+          test("http://abc.com/index.html",'{"path":["http:","","abc.com","index.html"],"variables":{}}');
+          test("/app.html?&_suid=141740660296307673981441184878",'{"path":["","app.html"],"variables":{"_suid":"141740660296307673981441184878"}}');
+          test("/events/T7?&_suid=141740833138706824455889873207",'{"path":["","events","T7"],"variables":{"_suid":"141740833138706824455889873207"}}');
+          test("",'{"path":[""],"variables":{}}');
+          test("/events/z3?q=askhsj%20hdjk&_suid=141749092391407243743964936584",'{"path":["","events","z3"],"variables":{"q":"askhsj hdjk","_suid":"141749092391407243743964936584"}}');
         });
       });
       describe('#error()', function() {
