@@ -1181,6 +1181,13 @@ describe(
           test("/events/T7?&_suid=141740833138706824455889873207",'{"path":["","events","T7"],"variables":{"_suid":"141740833138706824455889873207"}}');
           test("",'{"path":[""],"variables":{}}');
           test("/events/z3?q=askhsj%20hdjk&_suid=141749092391407243743964936584",'{"path":["","events","z3"],"variables":{"q":"askhsj hdjk","_suid":"141749092391407243743964936584"}}');
+          var split =$_.utils.splitUrlPath("/events/z3?q=askhsj%20hdjk&_suid=141749092391407243743964936584");
+          assert.equal(split.toString(), "/events/z3?q=askhsj%20hdjk&_suid=141749092391407243743964936584" );
+          delete split.variables['_suid'];
+          assert.equal(split.toString(), "/events/z3?q=askhsj%20hdjk" );
+          delete split.variables['q'];
+          assert.equal(split.toString(), "/events/z3" );
+          
         });
       });
       describe('#error()', function() {
